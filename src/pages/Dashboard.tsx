@@ -19,6 +19,7 @@ interface Profile {
 interface Agent {
   id: string;
   user_id: string;
+  nome: string | null;
   quem_eh: string | null;
   o_que_faz: string | null;
   objetivo: string | null;
@@ -234,10 +235,10 @@ const Dashboard = () => {
                   >
                     <CardHeader>
                       <CardTitle className="text-lg">
-                        {agent.quem_eh || "Agente sem nome"}
+                        {agent.nome || "Sem nome"}
                       </CardTitle>
                       <CardDescription className="line-clamp-2">
-                        {agent.o_que_faz || "Sem descrição"}
+                        {agent.quem_eh || "Sem descrição"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
