@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Session } from "@supabase/supabase-js";
 
 interface Profile {
@@ -35,6 +51,9 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -116,6 +135,45 @@ const Dashboard = () => {
         description: error.message,
       });
     }
+  };
+
+  const handleDeleteAgent = async () => {
+    if (!agentToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("agents")
+        .delete()
+        .eq("id", agentToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Agente eliminado",
+        description: `O agente ${agentToDelete.nome || "Sem nome"} foi eliminado permanentemente.`,
+      });
+
+      setAgents(agents.filter((a) => a.id !== agentToDelete.id));
+      setConfirmDeleteOpen(false);
+      setDeleteDialogOpen(false);
+      setAgentToDelete(null);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao eliminar agente",
+        description: error.message,
+      });
+    }
+  };
+
+  const initiateDelete = (agent: Agent) => {
+    setAgentToDelete(agent);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleFirstConfirm = () => {
+    setDeleteDialogOpen(false);
+    setConfirmDeleteOpen(true);
   };
 
   const getPlanColor = (plano: string) => {
@@ -244,11 +302,39 @@ const Dashboard = () => {
                 {agents.map((agent) => (
                   <Card
                     key={agent.id}
-                    className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => navigate(`/agent/${agent.id}`)}
+                    className="hover:shadow-lg transition-shadow relative"
                   >
+                    <div className="absolute top-4 right-4 z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/agent/${agent.id}`)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Configurações
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => initiateDelete(agent)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Eliminar Agente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                     <CardHeader>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg pr-8">
                         {agent.nome || "Sem nome"}
                       </CardTitle>
                       <CardDescription className="line-clamp-2">
@@ -268,6 +354,65 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Primeiro diálogo de confirmação */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Eliminar Agente {agentToDelete?.nome || "Sem nome"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja eliminar este agente?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFirstConfirm}>
+              Sim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Segundo diálogo de confirmação */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atenção! Ação Irreversível</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Você está prestes a apagar para sempre o Agente{" "}
+                <strong>{agentToDelete?.nome || "Sem nome"}</strong>.
+              </p>
+              <p>
+                Se continuar, você perderá todas as informações e instruções
+                que inseriu nele até agora.
+              </p>
+              <p className="font-semibold">Deseja mesmo prosseguir?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel
+              onClick={() => {
+                setConfirmDeleteOpen(false);
+                setAgentToDelete(null);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Desejo manter o Agente {agentToDelete?.nome || "Sem nome"} em
+              minha conta
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAgent}
+              className="w-full sm:w-auto bg-destructive hover:bg-destructive/90"
+            >
+              Sim, excluir Agente {agentToDelete?.nome || "Sem nome"}{" "}
+              permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
