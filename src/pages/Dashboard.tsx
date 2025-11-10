@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 
 interface Profile {
@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -62,9 +63,10 @@ const Dashboard = () => {
     if (!session?.user) return;
 
     try {
-      const [profileResult, agentsResult] = await Promise.all([
+      const [profileResult, agentsResult, roleResult] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", session.user.id).single(),
         supabase.from("agents").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -72,6 +74,7 @@ const Dashboard = () => {
 
       setProfile(profileResult.data);
       setAgents(agentsResult.data || []);
+      setIsAdmin(!!roleResult.data);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -146,10 +149,18 @@ const Dashboard = () => {
             </div>
             <h1 className="text-xl font-bold">Ajudo Seu Negócio IA</h1>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </Button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="secondary" onClick={() => navigate("/admin")}>
+                <Shield className="mr-2 h-4 w-4" />
+                Admin
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -168,7 +179,10 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle>Plano Atual</CardTitle>
               <CardDescription>
-                Apenas administradores podem alterar o plano
+                {isAdmin 
+                  ? "Acesse o painel de admin para alterar planos"
+                  : "Entre em contato com o suporte para alterar seu plano"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
