@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import emailjs from '@emailjs/browser';
 
 interface Agent {
   id: string;
@@ -116,6 +117,7 @@ const Agent = () => {
 
     setSaving(true);
     try {
+      // 1️⃣ Salva no Supabase
       const { error } = await supabase
         .from("agents")
         .update({
@@ -137,14 +139,42 @@ const Agent = () => {
 
       if (error) throw error;
 
+      // 2️⃣ Envia e-mail via EmailJS
+      emailjs.init('NmeVuycVzIv4cDkxi');
+      
+      const templateParams = {
+        user_email: session.user.email,
+        user_name: session.user.user_metadata?.full_name || session.user.email,
+        agent_name: nome,
+        agent_identity: quemEh,
+        agent_function: oQueFaz,
+        agent_goal: objetivo,
+        agent_tone: comoDeveResponder,
+        agent_instructions: instrucoesAgente,
+        agent_forbidden_topics: topicosEvitar,
+        agent_forbidden_words: palavrasEvitar,
+        agent_allowed_links: linksPermitidos,
+        agent_custom_rules: regrasPersonalizadas,
+        agent_default_response: respostaPadraoErro,
+        agent_secondary_response: respostaSecundariaErro,
+        date: new Date().toLocaleString('pt-BR'),
+      };
+
+      await emailjs.send(
+        'service_mibcy3e',
+        'template_kms9cib',
+        templateParams
+      );
+
       toast({
-        title: "Instruções salvas com sucesso! ✓",
-        description: "Suas alterações foram salvas.",
+        title: "✅ Instruções salvas e e-mail enviado com sucesso!",
+        description: "Suas alterações foram salvas e nossa equipe foi notificada.",
       });
     } catch (error: any) {
+      console.error("Erro ao salvar:", error);
       toast({
         variant: "destructive",
-        title: "Erro ao salvar",
+        title: "❌ Erro ao salvar ou enviar",
         description: error.message,
       });
     } finally {
