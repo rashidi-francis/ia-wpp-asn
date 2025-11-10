@@ -167,8 +167,8 @@ const Agent = () => {
       );
 
       toast({
-        title: "✅ Instruções salvas e e-mail enviado com sucesso!",
-        description: "Suas alterações foram salvas e nossa equipe foi notificada.",
+        title: "Instruções salvas com sucesso",
+        description: "Suas alterações foram salvas.",
       });
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
