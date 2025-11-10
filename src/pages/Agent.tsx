@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -12,9 +13,18 @@ import type { Session } from "@supabase/supabase-js";
 interface Agent {
   id: string;
   user_id: string;
+  nome: string | null;
   quem_eh: string | null;
   o_que_faz: string | null;
   objetivo: string | null;
+  como_deve_responder: string | null;
+  instrucoes_agente: string | null;
+  topicos_evitar: string | null;
+  palavras_evitar: string | null;
+  links_permitidos: string | null;
+  regras_personalizadas: string | null;
+  resposta_padrao_erro: string | null;
+  resposta_secundaria_erro: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,9 +37,18 @@ const Agent = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [nome, setNome] = useState("");
   const [quemEh, setQuemEh] = useState("");
   const [oQueFaz, setOQueFaz] = useState("");
   const [objetivo, setObjetivo] = useState("");
+  const [comoDeveResponder, setComoDeveResponder] = useState("");
+  const [instrucoesAgente, setInstrucoesAgente] = useState("");
+  const [topicosEvitar, setTopicosEvitar] = useState("");
+  const [palavrasEvitar, setPalavrasEvitar] = useState("");
+  const [linksPermitidos, setLinksPermitidos] = useState("");
+  const [regrasPersonalizadas, setRegrasPersonalizadas] = useState("");
+  const [respostaPadraoErro, setRespostaPadraoErro] = useState("");
+  const [respostaSecundariaErro, setRespostaSecundariaErro] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -68,9 +87,18 @@ const Agent = () => {
       if (error) throw error;
 
       setAgent(data);
+      setNome(data.nome || "");
       setQuemEh(data.quem_eh || "");
       setOQueFaz(data.o_que_faz || "");
       setObjetivo(data.objetivo || "");
+      setComoDeveResponder(data.como_deve_responder || "");
+      setInstrucoesAgente(data.instrucoes_agente || "");
+      setTopicosEvitar(data.topicos_evitar || "");
+      setPalavrasEvitar(data.palavras_evitar || "");
+      setLinksPermitidos(data.links_permitidos || "");
+      setRegrasPersonalizadas(data.regras_personalizadas || "");
+      setRespostaPadraoErro(data.resposta_padrao_erro || "");
+      setRespostaSecundariaErro(data.resposta_secundaria_erro || "");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -91,9 +119,18 @@ const Agent = () => {
       const { error } = await supabase
         .from("agents")
         .update({
+          nome: nome,
           quem_eh: quemEh,
           o_que_faz: oQueFaz,
           objetivo: objetivo,
+          como_deve_responder: comoDeveResponder,
+          instrucoes_agente: instrucoesAgente,
+          topicos_evitar: topicosEvitar,
+          palavras_evitar: palavrasEvitar,
+          links_permitidos: linksPermitidos,
+          regras_personalizadas: regrasPersonalizadas,
+          resposta_padrao_erro: respostaPadraoErro,
+          resposta_secundaria_erro: respostaSecundariaErro,
         })
         .eq("id", id)
         .eq("user_id", session.user.id);
@@ -153,17 +190,33 @@ const Agent = () => {
             <CardTitle>Configure seu Agente de IA</CardTitle>
             <CardDescription>
               Preencha as informações abaixo para definir o comportamento do seu agente.
-              Os campos não possuem limite de caracteres.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="quem-eh" className="text-base font-semibold">
-                Quem é o seu agente?
+              <Label htmlFor="nome" className="text-base font-semibold">
+                1. Qual o nome de seu Agente
               </Label>
+              <Input
+                id="nome"
+                placeholder="Digite o nome do seu agente..."
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                maxLength={100}
+                className="max-w-md"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quem-eh" className="text-base font-semibold">
+                2. Quem é seu agente?
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Descreva identidade e principais características, personalidade do Agente, etc.
+              </p>
               <Textarea
                 id="quem-eh"
-                placeholder="Descreva quem é seu agente, seu papel, especialidade..."
+                placeholder="Descreva quem é seu agente..."
                 value={quemEh}
                 onChange={(e) => setQuemEh(e.target.value)}
                 className="min-h-[120px] resize-y"
@@ -172,8 +225,11 @@ const Agent = () => {
 
             <div className="space-y-2">
               <Label htmlFor="o-que-faz" className="text-base font-semibold">
-                O que o seu agente faz?
+                3. O que seu agente faz?
               </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina o papel principal do seu Agente. Como ele deve se comportar, quais são suas responsabilidades, etc.
+              </p>
               <Textarea
                 id="o-que-faz"
                 placeholder="Explique as atividades e funções que seu agente desempenha..."
@@ -185,13 +241,162 @@ const Agent = () => {
 
             <div className="space-y-2">
               <Label htmlFor="objetivo" className="text-base font-semibold">
-                Qual é o objetivo do seu agente?
+                4. Qual é o objetivo de seu agente?
               </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Especifique o objetivo final do seu Agente nesta interação. Isso ajuda o Agente a se concentrar em ações específicas para alcançar esse objetivo.
+              </p>
               <Textarea
                 id="objetivo"
                 placeholder="Defina os objetivos principais e metas do seu agente..."
                 value={objetivo}
                 onChange={(e) => setObjetivo(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="como-deve-responder" className="text-base font-semibold">
+                5. Como o seu agente deve responder?
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina o tom e o estilo das respostas do seu Agente. Isso ajuda o Agente a entender como se comunicar de forma eficaz.
+              </p>
+              <Textarea
+                id="como-deve-responder"
+                placeholder="Defina o tom e estilo de comunicação..."
+                value={comoDeveResponder}
+                onChange={(e) => setComoDeveResponder(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>REGRAS GERAIS</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="instrucoes-agente" className="text-base font-semibold">
+                1. Instruções para o agente
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina as principais responsabilidades e ações que o seu Agente deve executar. Isso ajuda o Agente a compreender seu papel e a realizar suas tarefas de forma eficaz.
+              </p>
+              <Textarea
+                id="instrucoes-agente"
+                placeholder="Digite as instruções principais..."
+                value={instrucoesAgente}
+                onChange={(e) => setInstrucoesAgente(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="topicos-evitar" className="text-base font-semibold">
+                2. Quais tópicos seu agente deve evitar?
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina os tópicos que o seu Agente deve evitar. Isso ajuda o Agente a entender sobre o que ele não deve falar.
+              </p>
+              <Textarea
+                id="topicos-evitar"
+                placeholder="Liste os tópicos que devem ser evitados..."
+                value={topicosEvitar}
+                onChange={(e) => setTopicosEvitar(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="palavras-evitar" className="text-base font-semibold">
+                3. Quais palavras seu agente deve evitar?
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina as palavras que o seu Agente deve evitar. Isso ajuda o Agente a entender o que ele não deve dizer.
+              </p>
+              <Textarea
+                id="palavras-evitar"
+                placeholder="Liste as palavras que devem ser evitadas..."
+                value={palavrasEvitar}
+                onChange={(e) => setPalavrasEvitar(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="links-permitidos" className="text-base font-semibold">
+                4. Links Permitidos
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina os links que o seu Agente pode usar. Isso ajuda o Agente a entender quais links ele pode utilizar.
+              </p>
+              <Textarea
+                id="links-permitidos"
+                placeholder="Liste os links permitidos..."
+                value={linksPermitidos}
+                onChange={(e) => setLinksPermitidos(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="regras-personalizadas" className="text-base font-semibold">
+                5. Regras Personalizadas
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Defina regras adicionais para o seu Agente. Isso ajuda o Agente a entender o que ele deve fazer.
+              </p>
+              <Textarea
+                id="regras-personalizadas"
+                placeholder="Digite regras personalizadas..."
+                value={regrasPersonalizadas}
+                onChange={(e) => setRegrasPersonalizadas(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>RESPOSTAS DE ERRO</CardTitle>
+            <CardDescription>
+              Em casos de falha de configuração, problemas na API, entre outros, o Agente pode responder com mensagens de erro.
+              Se você se aperceber de alguma mensagem de erro, nos informe imediatamente sobre o erro ocorrido.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="resposta-padrao-erro" className="text-base font-semibold">
+                1. Resposta Padrão
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Deixe em branco caso não tenha
+              </p>
+              <Textarea
+                id="resposta-padrao-erro"
+                placeholder="Digite a resposta padrão de erro..."
+                value={respostaPadraoErro}
+                onChange={(e) => setRespostaPadraoErro(e.target.value)}
+                className="min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="resposta-secundaria-erro" className="text-base font-semibold">
+                2. Resposta Secundária
+              </Label>
+              <p className="text-sm text-muted-foreground italic">
+                Deixe em branco caso não tenha
+              </p>
+              <Textarea
+                id="resposta-secundaria-erro"
+                placeholder="Digite a resposta secundária de erro..."
+                value={respostaSecundariaErro}
+                onChange={(e) => setRespostaSecundariaErro(e.target.value)}
                 className="min-h-[120px] resize-y"
               />
             </div>

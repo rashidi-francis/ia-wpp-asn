@@ -16,29 +16,56 @@ export type Database = {
     Tables: {
       agents: {
         Row: {
+          como_deve_responder: string | null
           created_at: string
           id: string
+          instrucoes_agente: string | null
+          links_permitidos: string | null
+          nome: string | null
           o_que_faz: string | null
           objetivo: string | null
+          palavras_evitar: string | null
           quem_eh: string | null
+          regras_personalizadas: string | null
+          resposta_padrao_erro: string | null
+          resposta_secundaria_erro: string | null
+          topicos_evitar: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          como_deve_responder?: string | null
           created_at?: string
           id?: string
+          instrucoes_agente?: string | null
+          links_permitidos?: string | null
+          nome?: string | null
           o_que_faz?: string | null
           objetivo?: string | null
+          palavras_evitar?: string | null
           quem_eh?: string | null
+          regras_personalizadas?: string | null
+          resposta_padrao_erro?: string | null
+          resposta_secundaria_erro?: string | null
+          topicos_evitar?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          como_deve_responder?: string | null
           created_at?: string
           id?: string
+          instrucoes_agente?: string | null
+          links_permitidos?: string | null
+          nome?: string | null
           o_que_faz?: string | null
           objetivo?: string | null
+          palavras_evitar?: string | null
           quem_eh?: string | null
+          regras_personalizadas?: string | null
+          resposta_padrao_erro?: string | null
+          resposta_secundaria_erro?: string | null
+          topicos_evitar?: string | null
           updated_at?: string
           user_id?: string
         }
