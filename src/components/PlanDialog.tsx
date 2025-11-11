@@ -72,11 +72,20 @@ const plans = [
 
 export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => {
   const currentPlan = profile?.plano || "Básico";
+  
+  const planOrder = { "Básico": 1, "Avançado": 2, "Empresarial": 3 };
+  
+  const getPlanAction = (targetPlan: string) => {
+    const currentOrder = planOrder[currentPlan as keyof typeof planOrder] || 1;
+    const targetOrder = planOrder[targetPlan as keyof typeof planOrder] || 1;
+    return targetOrder > currentOrder ? "upgrade" : "downgrade";
+  };
 
-  const handleUpgrade = (targetPlan: string) => {
+  const handlePlanChange = (targetPlan: string) => {
     const whatsappNumber = "5511930500397";
+    const action = getPlanAction(targetPlan);
     const message = encodeURIComponent(
-      `Olá, vim da vossa plataforma de IA, gostaria fazer upgrade do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
+      `Olá, vim da vossa plataforma de IA, gostaria fazer ${action} do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
     );
     window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${message}`, "_blank");
   };
@@ -128,12 +137,12 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
 
               {currentPlan !== plan.name && (
                 <Button
-                  onClick={() => handleUpgrade(plan.name)}
+                  onClick={() => handlePlanChange(plan.name)}
                   className="w-full"
-                  variant={currentPlan === "Básico" && plan.name === "Avançado" ? "default" : "outline"}
+                  variant={getPlanAction(plan.name) === "upgrade" ? "default" : "outline"}
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Upgrade para {plan.name}
+                  {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
                 </Button>
               )}
 
