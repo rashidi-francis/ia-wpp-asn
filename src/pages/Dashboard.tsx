@@ -154,11 +154,15 @@ const Dashboard = () => {
       // Enviar e-mail via EmailJS
       try {
         const templateParams = {
-          user_email: profile?.email || session?.user?.email,
-          user_name: profile?.nome || session?.user?.email,
+          user_email: profile?.email || session?.user?.email || 'email@nao-encontrado.com',
+          user_name: profile?.nome || session?.user?.email || 'Usuário',
           agent_name: agentToDelete.nome || "Sem nome",
           date: new Date().toLocaleString('pt-BR'),
         };
+
+        console.log('🔍 Tentando enviar email com params:', templateParams);
+        console.log('🔍 Service ID: service_mibcy3e');
+        console.log('🔍 Template ID: template_342qh08');
 
         const emailRes = await emailjs.send(
           'service_mibcy3e',
@@ -166,14 +170,20 @@ const Dashboard = () => {
           templateParams,
           'NmeVuycVzIv4cDkxi'
         );
-        console.log('EmailJS enviado:', emailRes);
-        toast({ title: 'Email de exclusão enviado', description: 'O time foi notificado.' });
+        
+        console.log('✅ EmailJS enviado com sucesso:', emailRes);
+        toast({ 
+          title: '✅ Email enviado', 
+          description: 'O time foi notificado sobre a exclusão do agente.' 
+        });
       } catch (emailError: any) {
-        console.error('Erro ao enviar email:', emailError);
+        console.error('❌ Erro completo ao enviar email:', emailError);
+        console.error('❌ Erro text:', emailError?.text);
+        console.error('❌ Erro message:', emailError?.message);
         toast({
           variant: 'destructive',
-          title: 'Falha ao enviar email de exclusão',
-          description: emailError?.text || emailError?.message || 'Verifique o ID do template e o serviço no EmailJS.',
+          title: '❌ Falha ao enviar email',
+          description: emailError?.text || emailError?.message || 'Erro desconhecido. Veja o console.',
         });
       }
 
