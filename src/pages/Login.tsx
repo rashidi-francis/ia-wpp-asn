@@ -137,15 +137,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%] p-4">
+      <Card className="w-full max-w-md shadow-2xl border-primary/20 hover:shadow-glow transition-all duration-500 animate-fade-in-scale backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
               <span className="text-2xl font-bold text-primary-foreground">AI</span>
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Ajudo Seu Negócio IA</CardTitle>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</CardTitle>
           <CardDescription>
             {isLogin ? "Entre na sua conta" : "Crie sua conta gratuitamente"}
           </CardDescription>
@@ -191,7 +191,7 @@ const Login = () => {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full shadow-lg hover:shadow-glow transition-all duration-300" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? "Entrar" : "Criar conta"}
             </Button>

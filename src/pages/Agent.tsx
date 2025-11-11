@@ -191,19 +191,19 @@ const Agent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%]">
+      <header className="border-b border-primary/20 bg-card/80 backdrop-blur-xl shadow-lg sticky top-0 z-10 animate-fade-in">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="hover:bg-primary/10">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
               <span className="text-lg font-bold text-primary-foreground">AI</span>
             </div>
-            <h1 className="text-xl font-bold">Instruções do Agente</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Instruções do Agente</h1>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="shadow-lg hover:shadow-glow transition-all duration-300">
             {saving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -215,9 +215,9 @@ const Agent = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card className="mb-6">
+        <Card className="mb-6 border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow animate-fade-in-scale">
           <CardHeader>
-            <CardTitle>Configure seu Agente de IA</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Configure seu Agente de IA</CardTitle>
             <CardDescription>
               Preencha as informações abaixo para definir o comportamento do seu agente.
             </CardDescription>
@@ -433,9 +433,9 @@ const Agent = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow animate-fade-in-scale" style={{ animationDelay: "0.2s" }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
               <Calendar className="h-5 w-5 text-primary" />
               Próximo Passo: Conectar WhatsApp à IA
             </CardTitle>
@@ -450,7 +450,7 @@ const Agent = () => {
             </p>
             <Button
               size="lg"
-              className="w-full"
+              className="w-full shadow-lg hover:shadow-glow transition-all duration-300"
               onClick={() => navigate("/agendar")}
             >
               <Calendar className="mr-2 h-5 w-5" />

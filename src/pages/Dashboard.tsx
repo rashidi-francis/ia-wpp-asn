@@ -219,14 +219,14 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%]">
+      <header className="border-b border-primary/20 bg-card/80 backdrop-blur-xl shadow-lg sticky top-0 z-10 animate-fade-in">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
               <span className="text-lg font-bold text-primary-foreground">AI</span>
             </div>
-            <h1 className="text-xl font-bold">Ajudo Seu Negócio IA</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</h1>
           </div>
           <div className="flex gap-2">
             {isAdmin && (
@@ -244,8 +244,8 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">
+        <div className="mb-8 animate-slide-up">
+          <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Bem-vindo, {profile?.nome || "Usuário"}! 👋
           </h2>
           <p className="text-muted-foreground">
@@ -253,8 +253,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-2 mb-8 animate-fade-in-scale" style={{ animationDelay: "0.1s" }}>
+          <Card className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow">
             <CardHeader>
               <CardTitle>Plano Atual</CardTitle>
               <CardDescription>
@@ -271,7 +271,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow">
             <CardHeader>
               <CardTitle>Dados do Cliente</CardTitle>
               <CardDescription>Informações da sua conta</CardDescription>
@@ -290,7 +290,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Card>
+        <Card className="border-primary/20 animate-fade-in-scale" style={{ animationDelay: "0.2s" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -299,10 +299,10 @@ const Dashboard = () => {
                   Crie e gerencie seus agentes de IA
                 </CardDescription>
               </div>
-              <Button onClick={handleCreateAgent}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Novo Agente
-              </Button>
+                <Button onClick={handleCreateAgent} className="shadow-lg hover:shadow-glow transition-all duration-300">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Novo Agente
+                </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -313,7 +313,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Crie seu primeiro agente para começar
                 </p>
-                <Button onClick={handleCreateAgent}>
+                <Button onClick={handleCreateAgent} className="shadow-lg hover:shadow-glow transition-all duration-300">
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Primeiro Agente
                 </Button>
@@ -323,7 +323,7 @@ const Dashboard = () => {
                 {agents.map((agent) => (
                   <Card
                     key={agent.id}
-                    className="hover:shadow-lg transition-shadow relative"
+                    className="relative border-primary/20 hover:border-primary/40 hover:shadow-glow transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-scale group"
                   >
                     <div className="absolute top-4 right-4 z-10">
                       <DropdownMenu>

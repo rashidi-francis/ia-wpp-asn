@@ -152,27 +152,29 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%]">
       <div className="container max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-primary" />
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
+              <Shield className="h-6 w-6 text-primary-foreground" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold">Painel de Administração</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Painel de Administração</h1>
               <p className="text-muted-foreground">Gerencie usuários e planos</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button variant="outline" onClick={() => navigate("/dashboard")} className="shadow-lg hover:shadow-glow transition-all duration-300">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao Dashboard
           </Button>
         </div>
 
         {/* Users List */}
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <Card key={user.id}>
+        <div className="grid gap-4 animate-fade-in-scale" style={{ animationDelay: "0.1s" }}>
+          {users.map((user, index) => (
+            <Card key={user.id} className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow animate-fade-in-scale" style={{ animationDelay: `${0.1 + index * 0.05}s` }}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
