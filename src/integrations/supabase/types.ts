@@ -198,6 +198,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_agent: { Args: { user_id: string }; Returns: boolean }
+      can_create_team_member: { Args: { user_id: string }; Returns: boolean }
+      get_plan_limits: {
+        Args: { plan_name: Database["public"]["Enums"]["plan_type"] }
+        Returns: {
+          max_agents: number
+          max_team_members: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

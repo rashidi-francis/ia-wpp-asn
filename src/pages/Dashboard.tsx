@@ -37,6 +37,11 @@ interface Profile {
   created_at: string;
 }
 
+interface PlanLimits {
+  max_agents: number;
+  max_team_members: number;
+}
+
 interface Agent {
   id: string;
   user_id: string;
@@ -62,6 +67,7 @@ const Dashboard = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [planLimits, setPlanLimits] = useState<PlanLimits>({ max_agents: 0, max_team_members: 0 });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -102,6 +108,14 @@ const Dashboard = () => {
       setProfile(profileResult.data);
       setAgents(agentsResult.data || []);
       setIsAdmin(!!roleResult.data);
+
+      // Get plan limits
+      const { data: limitsData } = await supabase
+        .rpc("get_plan_limits", { plan_name: profileResult.data.plano });
+      
+      if (limitsData && limitsData.length > 0) {
+        setPlanLimits(limitsData[0]);
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -121,6 +135,17 @@ const Dashboard = () => {
   const handleCreateAgent = async () => {
     if (!session?.user) return;
 
+    // Check if user has reached agent limit
+    if (agents.length >= planLimits.max_agents) {
+      toast({
+        variant: "destructive",
+        title: "Limite de agentes atingido",
+        description: `Seu plano ${profile?.plano} permite até ${planLimits.max_agents} agentes. Faça upgrade para criar mais.`,
+      });
+      setPlanDialogOpen(true);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("agents")
@@ -128,7 +153,13 @@ const Dashboard = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Check if error is due to RLS policy (plan limit)
+        if (error.message.includes("policy")) {
+          throw new Error(`Você atingiu o limite de ${planLimits.max_agents} agentes do seu plano ${profile?.plano}.`);
+        }
+        throw error;
+      }
 
       toast({
         title: "Agente criado!",
@@ -351,10 +382,14 @@ const Dashboard = () => {
               <div>
                 <CardTitle>Meus Agentes</CardTitle>
                 <CardDescription>
-                  Crie e gerencie seus agentes de IA
+                  Você tem {agents.length} de {planLimits.max_agents} agentes ({planLimits.max_agents - agents.length} restantes)
                 </CardDescription>
               </div>
-                <Button onClick={handleCreateAgent} className="shadow-lg hover:shadow-glow transition-all duration-300">
+                <Button 
+                  onClick={handleCreateAgent} 
+                  className="shadow-lg hover:shadow-glow transition-all duration-300"
+                  disabled={agents.length >= planLimits.max_agents}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Novo Agente
                 </Button>

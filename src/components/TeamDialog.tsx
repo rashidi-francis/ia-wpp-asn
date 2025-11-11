@@ -26,6 +26,11 @@ interface TeamDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface PlanLimits {
+  max_agents: number;
+  max_team_members: number;
+}
+
 interface TeamMember {
   id: string;
   invited_email: string;
@@ -48,13 +53,39 @@ export const TeamDialog = ({ open, onOpenChange }: TeamDialogProps) => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [showAgentSelection, setShowAgentSelection] = useState(false);
+  const [planLimits, setPlanLimits] = useState<PlanLimits>({ max_agents: 0, max_team_members: 0 });
+  const [userPlan, setUserPlan] = useState<string>("Básico");
 
   useEffect(() => {
     if (open) {
       fetchTeamMembers();
       fetchAgents();
+      fetchPlanLimits();
     }
   }, [open]);
+
+  const fetchPlanLimits = async () => {
+    try {
+      const user = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plano")
+        .eq("id", user.data.user?.id)
+        .single();
+
+      if (profile) {
+        setUserPlan(profile.plano);
+        const { data: limitsData } = await supabase
+          .rpc("get_plan_limits", { plan_name: profile.plano });
+        
+        if (limitsData && limitsData.length > 0) {
+          setPlanLimits(limitsData[0]);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching plan limits:", error);
+    }
+  };
 
   const fetchTeamMembers = async () => {
     try {
@@ -94,6 +125,16 @@ export const TeamDialog = ({ open, onOpenChange }: TeamDialogProps) => {
       return;
     }
 
+    // Check if user has reached team member limit
+    if (teamMembers.length >= planLimits.max_team_members) {
+      toast({
+        variant: "destructive",
+        title: "Limite de vagas atingido",
+        description: `Seu plano ${userPlan} permite até ${planLimits.max_team_members} vagas no time. Faça upgrade para adicionar mais membros.`,
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const user = await supabase.auth.getUser();
@@ -109,7 +150,13 @@ export const TeamDialog = ({ open, onOpenChange }: TeamDialogProps) => {
         .select()
         .single();
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        // Check if error is due to RLS policy (plan limit)
+        if (memberError.message.includes("policy")) {
+          throw new Error(`Você atingiu o limite de ${planLimits.max_team_members} vagas do seu plano ${userPlan}.`);
+        }
+        throw memberError;
+      }
 
       // If specific agents selected, add agent access
       if (showAgentSelection && selectedAgents.length > 0 && member) {
@@ -187,7 +234,7 @@ export const TeamDialog = ({ open, onOpenChange }: TeamDialogProps) => {
         <DialogHeader>
           <DialogTitle>Gerenciar Equipe</DialogTitle>
           <DialogDescription>
-            Convide novos membros para usar sua conta
+            Você tem {teamMembers.length} de {planLimits.max_team_members} vagas no time ({planLimits.max_team_members - teamMembers.length} restantes)
           </DialogDescription>
         </DialogHeader>
 
@@ -262,7 +309,11 @@ export const TeamDialog = ({ open, onOpenChange }: TeamDialogProps) => {
               </div>
             )}
 
-            <Button onClick={handleInviteMember} disabled={loading} className="w-full">
+            <Button 
+              onClick={handleInviteMember} 
+              disabled={loading || teamMembers.length >= planLimits.max_team_members} 
+              className="w-full"
+            >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Convite"}
             </Button>
           </div>
