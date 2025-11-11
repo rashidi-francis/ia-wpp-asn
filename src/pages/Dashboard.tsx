@@ -162,7 +162,7 @@ const Dashboard = () => {
 
         await emailjs.send(
           'service_mibcy3e',
-          'template_delete123',
+          'template_342qh08',
           templateParams
         );
       } catch (emailError) {
