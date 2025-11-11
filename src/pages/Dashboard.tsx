@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2 } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { ProfileDialog } from "@/components/ProfileDialog";
+import { PlanDialog } from "@/components/PlanDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +58,8 @@ const Dashboard = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -257,10 +262,29 @@ const Dashboard = () => {
                 Admin
               </Button>
             )}
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <User className="mr-2 h-4 w-4" />
+                  Minha Conta
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setProfileDialogOpen(true)}>
+                  <User className="mr-2 h-4 w-4" />
+                  Meu Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPlanDialogOpen(true)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Meu Plano
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -459,6 +483,19 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ProfileDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        profile={profile}
+        onProfileUpdate={loadDashboardData}
+      />
+
+      <PlanDialog
+        open={planDialogOpen}
+        onOpenChange={setPlanDialogOpen}
+        profile={profile}
+      />
     </div>
   );
 };
