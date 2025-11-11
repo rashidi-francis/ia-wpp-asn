@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Session } from "@supabase/supabase-js";
+import { Footer } from "@/components/Footer";
 
 interface Profile {
   id: string;
@@ -542,6 +543,7 @@ const Dashboard = () => {
         open={teamDialogOpen}
         onOpenChange={setTeamDialogOpen}
       />
+      <Footer />
     </div>
   );
 };

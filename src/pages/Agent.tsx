@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import emailjs from '@emailjs/browser';
+import { Footer } from "@/components/Footer";
 
 interface Agent {
   id: string;
@@ -459,6 +460,7 @@ const Agent = () => {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 };

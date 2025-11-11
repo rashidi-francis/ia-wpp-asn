@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { Footer } from "@/components/Footer";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -208,6 +209,7 @@ const Login = () => {
           </div>
         </CardContent>
       </Card>
+      <Footer />
     </div>
   );
 };

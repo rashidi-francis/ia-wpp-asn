@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Shield, ArrowLeft } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 interface User {
   id: string;
@@ -227,6 +228,7 @@ const Admin = () => {
           </Card>
         )}
       </div>
+      <Footer />
     </div>
   );
 };

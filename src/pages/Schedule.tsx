@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft } from "lucide-react";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import type { Session } from "@supabase/supabase-js";
+import { Footer } from "@/components/Footer";
 
 const Schedule = () => {
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ const Schedule = () => {
       </main>
 
       <WhatsAppButton />
+      <Footer />
     </div>
   );
 };
