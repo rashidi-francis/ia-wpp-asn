@@ -245,8 +245,11 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8 animate-slide-up">
-          <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Bem-vindo, {profile?.nome || "Usuário"}! 👋
+          <h2 className="text-3xl font-bold mb-2">
+            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Bem-vindo, {profile?.nome || "Usuário"}!
+            </span>{" "}
+            <span className="inline-block animate-wave">👋</span>
           </h2>
           <p className="text-muted-foreground">
             Gerencie seus agentes de IA e acompanhe seu plano
