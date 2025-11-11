@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2 } from "lucide-react";
+import emailjs from '@emailjs/browser';
+
+emailjs.init('NmeVuycVzIv4cDkxi');
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -147,6 +150,24 @@ const Dashboard = () => {
         .eq("id", agentToDelete.id);
 
       if (error) throw error;
+
+      // Enviar e-mail via EmailJS
+      try {
+        const templateParams = {
+          user_email: profile?.email || session?.user?.email,
+          user_name: profile?.nome || session?.user?.email,
+          agent_name: agentToDelete.nome || "Sem nome",
+          date: new Date().toLocaleString('pt-BR'),
+        };
+
+        await emailjs.send(
+          'service_mibcy3e',
+          'template_delete123',
+          templateParams
+        );
+      } catch (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+      }
 
       toast({
         title: "Agente eliminado",
