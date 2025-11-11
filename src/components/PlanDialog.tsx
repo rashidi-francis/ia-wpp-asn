@@ -8,7 +8,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { ExternalLink, Check } from "lucide-react";
+import { useState } from "react";
 
 interface PlanDialogProps {
   open: boolean;
@@ -72,6 +74,7 @@ const plans = [
 
 export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => {
   const currentPlan = profile?.plano || "Básico";
+  const [isAnnual, setIsAnnual] = useState(true);
   
   const planOrder = { "Básico": 1, "Avançado": 2, "Empresarial": 3 };
   
@@ -103,6 +106,22 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
           </DialogDescription>
         </DialogHeader>
         
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <span className={`text-sm font-medium ${!isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            Mensal
+          </span>
+          <Switch
+            checked={isAnnual}
+            onCheckedChange={setIsAnnual}
+          />
+          <span className={`text-sm font-medium ${isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            Anual
+          </span>
+          <Badge className="bg-primary text-primary-foreground">
+            25% OFF
+          </Badge>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
           {plans.map((plan) => (
             <Card
@@ -117,10 +136,11 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
                   {currentPlan === plan.name && " (Atual)"}
                 </Badge>
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold">{plan.monthlyPrice}</p>
-                  <p className="text-sm text-muted-foreground">/mês</p>
+                  <p className="text-2xl font-bold">
+                    {isAnnual ? plan.annualPrice : plan.monthlyPrice}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Anual: {plan.annualPrice}/ano
+                    /{isAnnual ? 'mês' : 'mês'}
                   </p>
                 </div>
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
