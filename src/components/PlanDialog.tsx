@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { ExternalLink, Check } from "lucide-react";
 
 interface PlanDialogProps {
   open: boolean;
@@ -18,100 +19,131 @@ interface PlanDialogProps {
   } | null;
 }
 
-const getPlanColor = (plano: string) => {
-  switch (plano) {
-    case "Básico":
-      return "bg-secondary";
-    case "Avançado":
-      return "bg-accent";
-    case "Empresarial":
-      return "bg-primary";
-    default:
-      return "bg-muted";
-  }
-};
-
-const getPlanFeatures = (plano: string) => {
-  switch (plano) {
-    case "Básico":
-      return [
-        "1 agente ativo",
-        "Suporte básico",
-        "Recursos limitados",
-      ];
-    case "Avançado":
-      return [
-        "Até 5 agentes ativos",
-        "Suporte prioritário",
-        "Recursos avançados",
-        "Integrações personalizadas",
-      ];
-    case "Empresarial":
-      return [
-        "Agentes ilimitados",
-        "Suporte 24/7",
-        "Todos os recursos",
-        "API dedicada",
-        "Consultoria especializada",
-      ];
-    default:
-      return [];
-  }
-};
+const plans = [
+  {
+    name: "Básico",
+    monthlyPrice: "R$ 472",
+    annualPrice: "R$ 352",
+    description: "Perfeito para pequenos negócios começarem com IA conversacional.",
+    features: [
+      "2 Agentes Inteligentes",
+      "Interações Ilimitadas no WhatsApp",
+      "Acesso a recursos essenciais do ASN Agentes",
+      "Limite de upload por arquivo de 10MB",
+      "6 vagas no time",
+      "Integração com WhatsApp via QR Code",
+    ],
+    color: "bg-secondary",
+  },
+  {
+    name: "Avançado",
+    monthlyPrice: "R$ 1.552",
+    annualPrice: "R$ 1.152",
+    description: "Para empresas em crescimento que desejam escalar seu atendimento.",
+    features: [
+      "6 Agentes Inteligentes",
+      "Iterações Ilimitadas no WhatsApp",
+      "Acesso a todos os recursos do ASN Agentes",
+      "Limite de upload por arquivo de 10MB",
+      "20 vagas no time",
+      "Integração com WhatsApp via QR Code",
+      "Suporte prioritário",
+    ],
+    color: "bg-accent",
+  },
+  {
+    name: "Empresarial",
+    monthlyPrice: "R$ 4.752",
+    annualPrice: "R$ 3.552",
+    description: "Para empresas que buscam automatizar e aprimorar significativamente suas operações.",
+    features: [
+      "30 Agentes Inteligentes",
+      "Interações Ilimitadas no WhatsApp",
+      "Acesso a todos os recursos do ASN Agentes",
+      "Limite de upload por arquivo de 20MB",
+      "60 vagas no time",
+      "Integração com WhatsApp via QR Code",
+      "Suporte prioritário",
+      "Treinamento e onboarding personalizados",
+    ],
+    color: "bg-primary",
+  },
+];
 
 export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => {
-  const handleUpgrade = () => {
+  const currentPlan = profile?.plano || "Básico";
+
+  const handleUpgrade = (targetPlan: string) => {
     const whatsappNumber = "5511930500397";
-    const message = encodeURIComponent("Olá, vim da vossa plataforma de IA, gostaria fazer upgrade do meu plano atual");
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+    const message = encodeURIComponent(
+      `Olá, vim da vossa plataforma de IA, gostaria fazer upgrade do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
+    );
+    window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${message}`, "_blank");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Meu Plano</DialogTitle>
+          <DialogTitle>Planos Disponíveis</DialogTitle>
           <DialogDescription>
-            Informações sobre seu plano atual
+            Seu plano atual: <span className="font-semibold">{currentPlan}</span> | Membro desde{" "}
+            {profile?.created_at
+              ? new Date(profile.created_at).toLocaleDateString("pt-BR")
+              : "-"}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Plano Atual</p>
-              <Badge className={`${getPlanColor(profile?.plano || "Básico")} text-lg px-4 py-2`}>
-                {profile?.plano || "Básico"}
-              </Badge>
-            </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          {plans.map((plan) => (
+            <Card
+              key={plan.name}
+              className={`p-6 space-y-4 ${
+                currentPlan === plan.name ? "ring-2 ring-primary" : ""
+              }`}
+            >
+              <div className="space-y-2">
+                <Badge className={`${plan.color} text-base px-3 py-1`}>
+                  {plan.name}
+                  {currentPlan === plan.name && " (Atual)"}
+                </Badge>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold">{plan.monthlyPrice}</p>
+                  <p className="text-sm text-muted-foreground">/mês</p>
+                  <p className="text-sm text-muted-foreground">
+                    Anual: {plan.annualPrice}/ano
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+              </div>
 
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Recursos Inclusos</p>
               <ul className="space-y-2">
-                {getPlanFeatures(profile?.plano || "Básico").map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-sm">
-                    <span className="text-primary">✓</span>
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
-            </div>
 
-            <div>
-              <p className="text-sm text-muted-foreground">Membro desde</p>
-              <p className="font-medium">
-                {profile?.created_at
-                  ? new Date(profile.created_at).toLocaleDateString("pt-BR")
-                  : "-"}
-              </p>
-            </div>
-          </div>
+              {currentPlan !== plan.name && (
+                <Button
+                  onClick={() => handleUpgrade(plan.name)}
+                  className="w-full"
+                  variant={currentPlan === "Básico" && plan.name === "Avançado" ? "default" : "outline"}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Upgrade para {plan.name}
+                </Button>
+              )}
 
-          {profile?.plano !== "Empresarial" && (
-            <Button onClick={handleUpgrade} className="w-full" size="lg">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Fazer Upgrade
-            </Button>
-          )}
+              {currentPlan === plan.name && (
+                <Button className="w-full" variant="secondary" disabled>
+                  Plano Atual
+                </Button>
+              )}
+            </Card>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
