@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2 } from "lucide-react";
 import emailjs from '@emailjs/browser';
-
-emailjs.init('NmeVuycVzIv4cDkxi');
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -153,6 +151,9 @@ const Dashboard = () => {
 
       // Enviar e-mail via EmailJS
       try {
+        // Inicializar EmailJS aqui para garantir que está configurado
+        emailjs.init('NmeVuycVzIv4cDkxi');
+        
         const templateParams = {
           user_email: profile?.email || session?.user?.email || 'email@nao-encontrado.com',
           user_name: profile?.nome || session?.user?.email || 'Usuário',
@@ -163,12 +164,13 @@ const Dashboard = () => {
         console.log('🔍 Tentando enviar email com params:', templateParams);
         console.log('🔍 Service ID: service_mibcy3e');
         console.log('🔍 Template ID: template_342qh08');
+        console.log('🔍 Public Key: NmeVuycVzIv4cDkxi');
 
+        // Tentar enviar sem passar a public key novamente (já inicializado)
         const emailRes = await emailjs.send(
           'service_mibcy3e',
           'template_342qh08',
-          templateParams,
-          'NmeVuycVzIv4cDkxi'
+          templateParams
         );
         
         console.log('✅ EmailJS enviado com sucesso:', emailRes);
@@ -178,8 +180,9 @@ const Dashboard = () => {
         });
       } catch (emailError: any) {
         console.error('❌ Erro completo ao enviar email:', emailError);
-        console.error('❌ Erro text:', emailError?.text);
-        console.error('❌ Erro message:', emailError?.message);
+        console.error('❌ Status:', emailError?.status);
+        console.error('❌ Text:', emailError?.text);
+        console.error('❌ Message:', emailError?.message);
         toast({
           variant: 'destructive',
           title: '❌ Falha ao enviar email',
