@@ -106,6 +106,72 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_agent_access: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_agent_access_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_agent_access_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_email: string
+          owner_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_email: string
+          owner_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_email?: string
+          owner_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
