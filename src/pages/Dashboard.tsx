@@ -160,14 +160,23 @@ const Dashboard = () => {
           date: new Date().toLocaleString('pt-BR'),
         };
 
-        await emailjs.send(
+        const emailRes = await emailjs.send(
           'service_mibcy3e',
           'template_342qh08',
-          templateParams
+          templateParams,
+          'NmeVuycVzIv4cDkxi'
         );
-      } catch (emailError) {
+        console.log('EmailJS enviado:', emailRes);
+        toast({ title: 'Email de exclusão enviado', description: 'O time foi notificado.' });
+      } catch (emailError: any) {
         console.error('Erro ao enviar email:', emailError);
+        toast({
+          variant: 'destructive',
+          title: 'Falha ao enviar email de exclusão',
+          description: emailError?.text || emailError?.message || 'Verifique o ID do template e o serviço no EmailJS.',
+        });
       }
+
 
       toast({
         title: "Agente eliminado",
