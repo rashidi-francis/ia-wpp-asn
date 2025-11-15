@@ -83,7 +83,7 @@ const plans = [
       "Suporte prioritário",
       "Treinamento e onboarding personalizados",
     ],
-    gradient: "bg-gradient-diamond",
+    gradient: "bg-gradient-sapphire",
   },
 ];
 
