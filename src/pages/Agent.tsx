@@ -11,6 +11,7 @@ import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import emailjs from '@emailjs/browser';
 import { Footer } from "@/components/Footer";
+import { TrialExpiredDialog } from "@/components/TrialExpiredDialog";
 
 interface Agent {
   id: string;
@@ -39,6 +40,7 @@ const Agent = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [showTrialExpired, setShowTrialExpired] = useState(false);
   const [nome, setNome] = useState("");
   const [quemEh, setQuemEh] = useState("");
   const [oQueFaz, setOQueFaz] = useState("");
@@ -79,6 +81,28 @@ const Agent = () => {
     if (!session?.user || !id) return;
 
     try {
+      // Verificar o plano do usuário e data de criação
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("plano, created_at")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Verificar se o plano expirou (Plano Teste Grátis + mais de 3 dias)
+      if (profileData.plano === "Plano Teste Grátis") {
+        const createdAt = new Date(profileData.created_at);
+        const now = new Date();
+        const diffInDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (diffInDays > 3) {
+          setShowTrialExpired(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       const { data, error } = await supabase
         .from("agents")
         .select("*")
@@ -460,6 +484,7 @@ const Agent = () => {
           </CardContent>
         </Card>
       </main>
+      <TrialExpiredDialog open={showTrialExpired} onOpenChange={setShowTrialExpired} />
       <Footer />
     </div>
   );

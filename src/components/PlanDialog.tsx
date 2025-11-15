@@ -23,6 +23,21 @@ interface PlanDialogProps {
 
 const plans = [
   {
+    name: "Plano Teste Grátis",
+    monthlyPrice: "GRÁTIS",
+    annualPrice: "GRÁTIS",
+    description: "Experimente nossa plataforma gratuitamente por 3 dias.",
+    features: [
+      "1 Agente Inteligente",
+      "Teste por 3 dias",
+      "Acesso a recursos essenciais do ASN Agentes",
+      "Interações Ilimitadas no WhatsApp",
+      "Integração com WhatsApp via QR Code",
+    ],
+    color: "bg-muted",
+    isTrial: true,
+  },
+  {
     name: "Básico",
     monthlyPrice: "R$ 472",
     annualPrice: "R$ 352",
@@ -76,7 +91,7 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
   const currentPlan = profile?.plano || "Básico";
   const [isAnnual, setIsAnnual] = useState(true);
   
-  const planOrder = { "Básico": 1, "Avançado": 2, "Empresarial": 3 };
+  const planOrder = { "Plano Teste Grátis": 0, "Básico": 1, "Avançado": 2, "Empresarial": 3 };
   
   const getPlanAction = (targetPlan: string) => {
     const currentOrder = planOrder[currentPlan as keyof typeof planOrder] || 1;
@@ -122,7 +137,7 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
           </Badge>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
           {plans.map((plan) => (
             <Card
               key={plan.name}
@@ -137,11 +152,13 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
                 </Badge>
                 <div className="space-y-1">
                   <p className="text-2xl font-bold">
-                    {isAnnual ? plan.annualPrice : plan.monthlyPrice}
+                    {plan.isTrial ? plan.monthlyPrice : (isAnnual ? plan.annualPrice : plan.monthlyPrice)}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    /{isAnnual ? 'mês' : 'mês'}
-                  </p>
+                  {!plan.isTrial && (
+                    <p className="text-sm text-muted-foreground">
+                      /{isAnnual ? 'mês' : 'mês'}
+                    </p>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
               </div>
