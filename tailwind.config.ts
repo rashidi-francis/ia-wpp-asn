@@ -70,7 +70,7 @@ export default {
         "gradient-bronze": "var(--gradient-bronze)",
         "gradient-silver": "var(--gradient-silver)",
         "gradient-gold": "var(--gradient-gold)",
-        "gradient-platinum": "var(--gradient-platinum)",
+        "gradient-diamond": "var(--gradient-diamond)",
       },
       borderRadius: {
         lg: "var(--radius)",
