@@ -62,7 +62,7 @@ All colors MUST be HSL.
     --gradient-bronze: linear-gradient(135deg, hsl(30 70% 40%) 0%, hsl(35 80% 50%) 50%, hsl(25 65% 35%) 100%);
     --gradient-silver: linear-gradient(135deg, hsl(210 10% 70%) 0%, hsl(200 15% 85%) 50%, hsl(215 10% 65%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(50 95% 60%) 50%, hsl(40 85% 45%) 100%);
-    --gradient-platinum: linear-gradient(135deg, hsl(210 15% 85%) 0%, hsl(200 20% 95%) 50%, hsl(215 15% 80%) 100%);
+    --gradient-diamond: linear-gradient(135deg, hsl(200 100% 95%) 0%, hsl(210 100% 98%) 30%, hsl(195 90% 92%) 60%, hsl(205 100% 96%) 100%);
     
     /* Futuristic shadows */
     --shadow-lg: 0 10px 40px -10px hsl(210 100% 50% / 0.15);
@@ -122,7 +122,7 @@ All colors MUST be HSL.
     --gradient-bronze: linear-gradient(135deg, hsl(30 70% 40%) 0%, hsl(35 80% 50%) 50%, hsl(25 65% 35%) 100%);
     --gradient-silver: linear-gradient(135deg, hsl(210 10% 70%) 0%, hsl(200 15% 85%) 50%, hsl(215 10% 65%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(50 95% 60%) 50%, hsl(40 85% 45%) 100%);
-    --gradient-platinum: linear-gradient(135deg, hsl(210 15% 85%) 0%, hsl(200 20% 95%) 50%, hsl(215 15% 80%) 100%);
+    --gradient-diamond: linear-gradient(135deg, hsl(200 100% 95%) 0%, hsl(210 100% 98%) 30%, hsl(195 90% 92%) 60%, hsl(205 100% 96%) 100%);
     
     /* Futuristic shadows */
     --shadow-lg: 0 10px 40px -10px hsl(210 100% 50% / 0.25);
