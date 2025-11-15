@@ -34,7 +34,7 @@ const plans = [
       "Interações Ilimitadas no WhatsApp",
       "Integração com WhatsApp via QR Code",
     ],
-    color: "bg-muted",
+    gradient: "bg-gradient-bronze",
     isTrial: true,
   },
   {
@@ -50,7 +50,7 @@ const plans = [
       "6 vagas no time",
       "Integração com WhatsApp via QR Code",
     ],
-    color: "bg-secondary",
+    gradient: "bg-gradient-silver",
   },
   {
     name: "Avançado",
@@ -66,7 +66,7 @@ const plans = [
       "Integração com WhatsApp via QR Code",
       "Suporte prioritário",
     ],
-    color: "bg-accent",
+    gradient: "bg-gradient-gold",
   },
   {
     name: "Empresarial",
@@ -83,7 +83,7 @@ const plans = [
       "Suporte prioritário",
       "Treinamento e onboarding personalizados",
     ],
-    color: "bg-primary",
+    gradient: "bg-gradient-platinum",
   },
 ];
 
@@ -147,7 +147,7 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
               }`}
             >
               <div className="space-y-2">
-                <Badge className={`${plan.color} text-base px-3 py-1`}>
+                <Badge className={`${plan.gradient} text-white text-base px-3 py-1`}>
                   {plan.name}
                   {currentPlan === plan.name && " (Atual)"}
                 </Badge>
@@ -205,7 +205,7 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
               {/* Info do Plano */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-3">
-                  <Badge className={`${plan.color} text-base px-3 py-1`}>
+                  <Badge className={`${plan.gradient} text-white text-base px-3 py-1`}>
                     {plan.name}
                     {currentPlan === plan.name && " (Atual)"}
                   </Badge>
