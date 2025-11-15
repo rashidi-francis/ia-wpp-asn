@@ -137,8 +137,9 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
           </Badge>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
-          {plans.map((plan) => (
+        {/* Planos Pagos em Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          {plans.filter(plan => !plan.isTrial).map((plan) => (
             <Card
               key={plan.name}
               className={`p-6 space-y-4 ${
@@ -191,6 +192,60 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
             </Card>
           ))}
         </div>
+
+        {/* Plano Teste Grátis - Horizontal */}
+        {plans.filter(plan => plan.isTrial).map((plan) => (
+          <Card
+            key={plan.name}
+            className={`p-6 mt-6 ${
+              currentPlan === plan.name ? "ring-2 ring-primary" : ""
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              {/* Info do Plano */}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Badge className={`${plan.color} text-base px-3 py-1`}>
+                    {plan.name}
+                    {currentPlan === plan.name && " (Atual)"}
+                  </Badge>
+                  <p className="text-2xl font-bold">{plan.monthlyPrice}</p>
+                </div>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+              </div>
+
+              {/* Features em linha */}
+              <div className="flex-1">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Botão de Ação */}
+              <div className="md:w-48">
+                {currentPlan !== plan.name ? (
+                  <Button
+                    onClick={() => handlePlanChange(plan.name)}
+                    className="w-full"
+                    variant={getPlanAction(plan.name) === "upgrade" ? "default" : "outline"}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
+                  </Button>
+                ) : (
+                  <Button className="w-full" variant="secondary" disabled>
+                    Plano Atual
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
       </DialogContent>
     </Dialog>
   );
