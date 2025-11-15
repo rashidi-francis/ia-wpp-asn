@@ -66,6 +66,12 @@ export default {
           foreground: "hsl(var(--warning-foreground))",
         },
       },
+      backgroundImage: {
+        "gradient-bronze": "var(--gradient-bronze)",
+        "gradient-silver": "var(--gradient-silver)",
+        "gradient-gold": "var(--gradient-gold)",
+        "gradient-platinum": "var(--gradient-platinum)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
