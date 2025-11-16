@@ -2,10 +2,15 @@ import { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import whatsappAvatar from "@/assets/whatsapp-avatar.jpg";
 
-const WhatsAppButton = () => {
+interface WhatsAppButtonProps {
+  message?: string;
+}
+
+const WhatsAppButton = ({ message }: WhatsAppButtonProps = {}) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const whatsappNumber = "5511930500397";
-  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  const encodedMessage = message ? encodeURIComponent(message) : "";
+  const whatsappUrl = `https://wa.me/${whatsappNumber}${encodedMessage ? `?text=${encodedMessage}` : ""}`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">

@@ -83,7 +83,7 @@ const Schedule = () => {
         </Card>
       </main>
 
-      <WhatsAppButton />
+      <WhatsAppButton message="Olá, vim da vossa plataforma de IA, na parte de agendamento pra conectar Whatsapp no agente de IA...." />
       <Footer />
     </div>
   );
