@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import InputMask from "react-input-mask";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface ProfileDialogProps {
     nome: string;
     email: string;
     created_at: string;
+    celular?: string;
   } | null;
   onProfileUpdate: () => void;
 }
@@ -27,6 +29,7 @@ interface ProfileDialogProps {
 export const ProfileDialog = ({ open, onOpenChange, profile, onProfileUpdate }: ProfileDialogProps) => {
   const { toast } = useToast();
   const [nome, setNome] = useState(profile?.nome || "");
+  const [celular, setCelular] = useState(profile?.celular || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,7 +42,7 @@ export const ProfileDialog = ({ open, onOpenChange, profile, onProfileUpdate }: 
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ nome })
+        .update({ nome, celular })
         .eq("id", (await supabase.auth.getUser()).data.user?.id);
 
       if (error) throw error;
@@ -124,6 +127,24 @@ export const ProfileDialog = ({ open, onOpenChange, profile, onProfileUpdate }: 
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Seu nome"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="celular">Celular (WhatsApp)</Label>
+              <InputMask
+                mask="(99) 99999-9999"
+                value={celular}
+                onChange={(e) => setCelular(e.target.value)}
+                disabled={loading}
+              >
+                {(inputProps: any) => (
+                  <Input
+                    {...inputProps}
+                    id="celular"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                  />
+                )}
+              </InputMask>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
