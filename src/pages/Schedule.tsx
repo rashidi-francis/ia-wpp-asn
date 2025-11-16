@@ -64,7 +64,7 @@ const Schedule = () => {
 
             <div className="rounded-lg overflow-hidden border border-primary/20 shadow-lg animate-fade-in-scale" style={{ animationDelay: "0.2s" }}>
               <iframe
-                src="https://calendly.com/seu-calendly"
+                src="https://calendly.com/ajudoseunegocio/30min"
                 width="100%"
                 height="700"
                 frameBorder="0"
