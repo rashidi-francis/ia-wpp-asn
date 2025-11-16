@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Footer } from "@/components/Footer";
+import InputMask from "react-input-mask";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -17,6 +18,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   nome: z.string().min(2, { message: "Nome deve ter no mínimo 2 caracteres" }),
+  celular: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, { message: "Celular inválido. Use o formato (XX) XXXXX-XXXX" }),
 });
 
 const Login = () => {
@@ -27,6 +29,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
+  const [celular, setCelular] = useState("");
 
   useEffect(() => {
     const checkUser = async () => {
@@ -82,7 +85,7 @@ const Login = () => {
           navigate("/dashboard");
         }
       } else {
-        const validation = signupSchema.safeParse({ email, password, nome });
+        const validation = signupSchema.safeParse({ email, password, nome, celular });
         if (!validation.success) {
           toast({
             variant: "destructive",
@@ -100,6 +103,7 @@ const Login = () => {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               nome,
+              celular,
             },
           },
         });
@@ -155,18 +159,39 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input
-                    id="nome"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome</Label>
+                    <Input
+                      id="nome"
+                      type="text"
+                      placeholder="Seu nome"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="celular">Celular (WhatsApp)</Label>
+                    <InputMask
+                      mask="(99) 99999-9999"
+                      value={celular}
+                      onChange={(e) => setCelular(e.target.value)}
+                      disabled={loading}
+                    >
+                      {(inputProps: any) => (
+                        <Input
+                          {...inputProps}
+                          id="celular"
+                          type="tel"
+                          placeholder="(00) 00000-0000"
+                          required
+                        />
+                      )}
+                    </InputMask>
+                  </div>
+                </>
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
