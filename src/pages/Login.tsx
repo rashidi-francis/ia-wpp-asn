@@ -147,9 +147,9 @@ const Login = () => {
         <Card className="w-full max-w-md shadow-2xl border-primary/20 hover:shadow-glow transition-all duration-500 animate-fade-in-scale backdrop-blur-sm">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
-                <span className="text-2xl font-bold text-primary-foreground">AI</span>
-              </div>
+            <div className="w-20 h-16 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
+              <span className="text-lg font-bold text-primary-foreground">ChatASN</span>
+            </div>
             </div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</CardTitle>
             <CardDescription>
