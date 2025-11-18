@@ -39,8 +39,8 @@ const plans = [
   },
   {
     name: "Básico",
-    monthlyPrice: "R$ 472",
-    annualPrice: "R$ 352",
+    monthlyPrice: "R$ 270",
+    annualPrice: "R$ 220",
     description: "Perfeito para pequenos negócios começarem com IA conversacional.",
     features: [
       "2 Agentes Inteligentes",
@@ -54,8 +54,8 @@ const plans = [
   },
   {
     name: "Avançado",
-    monthlyPrice: "R$ 1.552",
-    annualPrice: "R$ 1.152",
+    monthlyPrice: "R$ 650",
+    annualPrice: "R$ 599",
     description: "Para empresas em crescimento que desejam escalar seu atendimento.",
     features: [
       "6 Agentes Inteligentes",
@@ -70,8 +70,8 @@ const plans = [
   },
   {
     name: "Empresarial",
-    monthlyPrice: "R$ 4.752",
-    annualPrice: "R$ 3.552",
+    monthlyPrice: "R$ 1.538",
+    annualPrice: "R$ 1.299",
     description: "Para empresas que buscam automatizar e aprimorar significativamente suas operações.",
     features: [
       "30 Agentes Inteligentes",
