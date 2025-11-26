@@ -193,6 +193,74 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
           ))}
         </div>
 
+        {/* Agency Boss Plan */}
+        <Card className="relative overflow-hidden border-2 border-primary/50 bg-gradient-to-r from-primary/5 to-accent/5 p-6 mt-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-2">Agency Boss</h3>
+                <p className="text-xl font-bold text-primary mb-3">Preço personalizado</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pensado para empresas de grande porte que precisam de soluções avançadas e personalizadas em IA conversacional.
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="font-semibold text-sm">Inclui todos os recursos dos planos anteriores, além de:</p>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Quantidade de funcionalidades ajustada conforme a demanda</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Suporte especializado 24 horas por dia, 7 dias por semana</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Treinamentos exclusivos e onboarding sob medida</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Acompanhamento de um gerente de conta sênior</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>APIs para conectar a IA aos seus sistemas internos</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Integração e sincronização de bases de dados</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Suporte a uploads de arquivos de até 50MB</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Entre outros benefícios adicionais</span>
+                </li>
+              </ul>
+              <p className="text-sm text-muted-foreground mt-4">
+                Quer algo ainda mais completo? Fale com nossa equipe e criaremos a solução ideal para você.
+              </p>
+            </div>
+            
+            <Button 
+              className="w-full md:w-auto" 
+              size="lg"
+              onClick={() => {
+                const message = encodeURIComponent("Olá, vim da vossa plataforma de IA e gostaria de saber mais sobre o plano personalizado Agency Boss");
+                window.open(`https://wa.me/5511930500397?text=${message}`, '_blank');
+              }}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Fale com nossa equipe
+            </Button>
+          </div>
+        </Card>
+
         {/* Plano Teste Grátis - Horizontal */}
         {plans.filter(plan => plan.isTrial).map((plan) => (
           <Card
