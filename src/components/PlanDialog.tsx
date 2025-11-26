@@ -297,14 +297,21 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
               {/* Botão de Ação */}
               <div className="md:w-48">
                 {currentPlan !== plan.name ? (
-                  <Button
-                    onClick={() => handlePlanChange(plan.name)}
-                    className="w-full"
-                    variant={getPlanAction(plan.name) === "upgrade" ? "default" : "outline"}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
-                  </Button>
+                  // Prevent downgrade from paid plans to free trial
+                  (planOrder[currentPlan as keyof typeof planOrder] >= 1 && plan.name === "Plano Teste Grátis") ? (
+                    <Button className="w-full" variant="outline" disabled>
+                      Não disponível
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handlePlanChange(plan.name)}
+                      className="w-full"
+                      variant={getPlanAction(plan.name) === "upgrade" ? "default" : "outline"}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
+                    </Button>
+                  )
                 ) : (
                   <Button className="w-full" variant="secondary" disabled>
                     Plano Atual
