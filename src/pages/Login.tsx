@@ -10,7 +10,6 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Footer } from "@/components/Footer";
 import InputMask from "react-input-mask";
-import logo from "@/assets/chatasn-logo.png";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -202,16 +201,6 @@ const Login = () => {
             <div className="animate-fade-in-scale">
               <Card className="w-full max-w-md mx-auto shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-none rounded-[22px] backdrop-blur-sm bg-white/90 hover:shadow-[0_25px_70px_rgba(0,0,0,0.35)] transition-all duration-500">
                 <CardHeader className="space-y-4 text-center pb-8">
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full animate-glow-pulse"></div>
-                      <img 
-                        src={logo} 
-                        alt="ChatASN" 
-                        className="w-24 h-24 relative z-10 drop-shadow-2xl"
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-2">
                     <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_100%]">
                       ChatASN
