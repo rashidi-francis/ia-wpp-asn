@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Footer } from "@/components/Footer";
 import InputMask from "react-input-mask";
+import logo from "@/assets/chatasn-logo.png";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -144,15 +145,27 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%]">
       <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl border-primary/20 hover:shadow-glow transition-all duration-500 animate-fade-in-scale backdrop-blur-sm">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
-            <div className="w-20 h-16 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
-              <span className="text-lg font-bold text-primary-foreground">ChatASN</span>
+        <Card className="w-full max-w-md shadow-2xl border-primary/20 hover:shadow-glow transition-all duration-500 animate-fade-in-scale backdrop-blur-sm bg-card/95">
+          <CardHeader className="space-y-4 text-center pb-8">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full animate-glow-pulse"></div>
+                <img 
+                  src={logo} 
+                  alt="ChatASN" 
+                  className="w-24 h-24 relative z-10 drop-shadow-2xl"
+                />
+              </div>
             </div>
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_100%]">
+                ChatASN
+              </CardTitle>
+              <p className="text-sm font-medium text-muted-foreground">
+                Inteligência Artificial para Seu Negócio
+              </p>
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               {isLogin ? "Entre na sua conta" : "Crie sua conta gratuitamente"}
             </CardDescription>
           </CardHeader>
