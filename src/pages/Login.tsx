@@ -173,17 +173,27 @@ const Login = () => {
               </div>
 
               {/* Texto com seta */}
-              <div className="flex items-center justify-center lg:justify-start gap-4 mt-8">
-                <p className="text-lg text-white font-semibold drop-shadow-md">
+              <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-4 mt-8">
+                <p className="text-lg text-white font-semibold drop-shadow-md text-center lg:text-left">
                   Faça login ou cadastre-se para iniciar
                 </p>
+                {/* Seta horizontal para desktop */}
                 <svg 
-                  className="w-16 h-16 lg:w-20 lg:h-20 text-[#FFC300] drop-shadow-glow animate-bounce-slow" 
+                  className="hidden lg:block w-20 h-20 text-[#FFC300] drop-shadow-glow animate-bounce-slow" 
                   fill="currentColor" 
                   viewBox="0 0 24 24"
                   style={{ filter: 'drop-shadow(0 0 8px rgba(255, 195, 0, 0.6))' }}
                 >
                   <path d="M13.025 1l-2.847 2.828 6.176 6.176h-16.354v3.992h16.354l-6.176 6.176 2.847 2.828 10.975-11z"/>
+                </svg>
+                {/* Seta curva para baixo em mobile */}
+                <svg 
+                  className="block lg:hidden w-16 h-16 text-[#FFC300] drop-shadow-glow animate-bounce-slow" 
+                  fill="currentColor" 
+                  viewBox="0 0 24 24"
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(255, 195, 0, 0.6))' }}
+                >
+                  <path d="M12 3v13.586l-4.293-4.293-1.414 1.414L12 19.414l5.707-5.707-1.414-1.414L12 16.586V3z"/>
                 </svg>
               </div>
             </div>
