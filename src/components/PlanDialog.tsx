@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ExternalLink, Check } from "lucide-react";
+import { ExternalLink, Check, CreditCard, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface PlanDialogProps {
   open: boolean;
@@ -90,6 +92,7 @@ const plans = [
 export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => {
   const currentPlan = profile?.plano || "Básico";
   const [isAnnual, setIsAnnual] = useState(true);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   
   const planOrder = { "Plano Teste Grátis": 0, "Básico": 1, "Avançado": 2, "Empresarial": 3 };
   
@@ -99,13 +102,64 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
     return targetOrder > currentOrder ? "upgrade" : "downgrade";
   };
 
-  const handlePlanChange = (targetPlan: string) => {
-    const whatsappNumber = "5511930500397";
-    const action = getPlanAction(targetPlan);
-    const message = encodeURIComponent(
-      `Olá, vim da vossa plataforma de IA, gostaria fazer ${action} do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
-    );
-    window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${message}`, "_blank");
+  const handlePlanChange = async (targetPlan: string) => {
+    // For free trial, redirect to WhatsApp (can't pay for free)
+    if (targetPlan === "Plano Teste Grátis") {
+      const whatsappNumber = "5511930500397";
+      const action = getPlanAction(targetPlan);
+      const message = encodeURIComponent(
+        `Olá, vim da vossa plataforma de IA, gostaria fazer ${action} do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
+      );
+      window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${message}`, "_blank");
+      return;
+    }
+
+    // For paid plans, create checkout
+    setLoadingPlan(targetPlan);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('pagarme-checkout', {
+        body: {
+          planName: targetPlan,
+          billingType: isAnnual ? 'annual' : 'monthly',
+          successUrl: `${window.location.origin}/dashboard?payment=success`,
+          cancelUrl: `${window.location.origin}/dashboard?payment=cancelled`,
+        },
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao processar",
+          description: "Não foi possível criar o checkout. Tente novamente.",
+        });
+        return;
+      }
+
+      if (data?.checkoutUrl) {
+        window.open(data.checkoutUrl, '_blank');
+        toast({
+          title: "Checkout aberto",
+          description: "Complete o pagamento na nova aba para ativar seu plano.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "URL de pagamento não disponível.",
+        });
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   return (
@@ -178,9 +232,19 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
                   onClick={() => handlePlanChange(plan.name)}
                   className="w-full"
                   variant={getPlanAction(plan.name) === "upgrade" ? "default" : "outline"}
+                  disabled={loadingPlan === plan.name}
                 >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
+                  {loadingPlan === plan.name ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      {getPlanAction(plan.name) === "upgrade" ? "Upgrade" : "Downgrade"} para {plan.name}
+                    </>
+                  )}
                 </Button>
               )}
 
