@@ -79,6 +79,45 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          billing_type: string
+          created_at: string
+          id: string
+          pagarme_order_id: string
+          paid_at: string | null
+          plan_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          billing_type?: string
+          created_at?: string
+          id?: string
+          pagarme_order_id: string
+          paid_at?: string | null
+          plan_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_type?: string
+          created_at?: string
+          id?: string
+          pagarme_order_id?: string
+          paid_at?: string | null
+          plan_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           celular: string | null
