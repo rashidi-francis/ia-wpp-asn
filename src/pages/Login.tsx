@@ -32,6 +32,11 @@ const Login = () => {
   const [celular, setCelular] = useState("");
 
   useEffect(() => {
+    // Meta Pixel PageView event
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'PageView');
+    }
+
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -123,6 +128,13 @@ const Login = () => {
             });
           }
         } else if (data.session) {
+          // Meta Pixel CompleteRegistration event (cadastro)
+          if (typeof window !== 'undefined' && (window as any).fbq) {
+            (window as any).fbq('track', 'CompleteRegistration', {
+              content_name: 'Cadastro ChatASN',
+              status: 'success'
+            });
+          }
           toast({
             title: "Conta criada com sucesso!",
             description: "Redirecionando...",
