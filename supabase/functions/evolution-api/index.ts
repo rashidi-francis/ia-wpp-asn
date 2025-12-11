@@ -214,7 +214,7 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
     throw new Error(data.message || 'Failed to create instance');
   }
 
-  // Configure webhook for this instance
+  // Configure webhook for this instance (using flat structure like curl)
   console.log(`Configuring webhook for instance: ${instanceName}`);
   const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
   
@@ -226,17 +226,14 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
         'apikey': EVOLUTION_API_KEY!,
       },
       body: JSON.stringify({
-        webhook: {
-          enabled: true,
-          url: webhookUrl,
-          webhook_by_events: false,
-          webhook_base64: true,
-          events: [
-            "CONNECTION_UPDATE",
-            "QRCODE_UPDATED",
-            "MESSAGES_UPSERT"
-          ],
-        }
+        url: webhookUrl,
+        webhook_by_events: false,
+        webhook_base64: true,
+        events: [
+          "CONNECTION_UPDATE",
+          "QRCODE_UPDATED",
+          "MESSAGES_UPSERT"
+        ]
       }),
     });
 
