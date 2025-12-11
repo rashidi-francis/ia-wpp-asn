@@ -11,24 +11,33 @@ const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Helper function to sanitize names for instance naming
-function sanitizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-z0-9]/g, '_') // Replace non-alphanumeric with underscore
-    .replace(/_+/g, '_') // Replace multiple underscores with single
-    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
-    .substring(0, 30); // Limit length
-}
-
-// Generate instance name: {user_name}_{agent_name}_{short_id}
-function generateInstanceName(userName: string, agentName: string, agentId: string): string {
-  const sanitizedUser = sanitizeName(userName || 'user');
-  const sanitizedAgent = sanitizeName(agentName || 'agent');
-  const shortId = agentId.substring(0, 8);
-  return `${sanitizedUser}_${sanitizedAgent}_${shortId}`;
+// Generate sequential instance name: agente01, agente02, etc.
+async function generateSequentialInstanceName(supabase: any): Promise<string> {
+  // Fetch all existing instance names to find the next number
+  const { data: instances } = await supabase
+    .from('whatsapp_instances')
+    .select('instance_name')
+    .order('created_at', { ascending: true });
+  
+  let nextNumber = 1;
+  
+  if (instances && instances.length > 0) {
+    // Extract numbers from existing instance names (agente01, agente02, etc.)
+    const existingNumbers = instances
+      .map((inst: any) => {
+        const match = inst.instance_name?.match(/^agente(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((num: number) => num > 0);
+    
+    if (existingNumbers.length > 0) {
+      nextNumber = Math.max(...existingNumbers) + 1;
+    }
+  }
+  
+  // Format with leading zero for numbers < 10
+  const formattedNumber = nextNumber.toString().padStart(2, '0');
+  return `agente${formattedNumber}`;
 }
 
 // Helper to fetch QR code with retries
@@ -96,7 +105,7 @@ serve(async (req) => {
     const { action, agentId } = await req.json();
     console.log(`Action: ${action}, AgentId: ${agentId}`);
 
-    // Verify user owns the agent and get user profile
+    // Verify user owns the agent
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('id, nome, user_id')
@@ -109,18 +118,22 @@ serve(async (req) => {
       throw new Error('Agent not found or access denied');
     }
 
-    // Get user profile for naming
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nome')
-      .eq('id', user.id)
+    // Check if this agent already has an instance
+    const { data: existingInstance } = await supabase
+      .from('whatsapp_instances')
+      .select('instance_name')
+      .eq('agent_id', agentId)
       .maybeSingle();
 
-    const userName = profile?.nome || user.email?.split('@')[0] || 'user';
-    const agentName = agent.nome || 'agent';
-    const instanceName = generateInstanceName(userName, agentName, agentId);
-    
-    console.log(`Generated instance name: ${instanceName}`);
+    // Use existing instance name or generate a new sequential one
+    let instanceName: string;
+    if (existingInstance?.instance_name) {
+      instanceName = existingInstance.instance_name;
+      console.log(`Using existing instance name: ${instanceName}`);
+    } else {
+      instanceName = await generateSequentialInstanceName(supabase);
+      console.log(`Generated new sequential instance name: ${instanceName}`);
+    }
 
     let result;
 
