@@ -44,8 +44,12 @@ serve(async (req) => {
       });
     }
 
+    // Normalize event name (Evolution API uses different formats)
+    const normalizedEvent = event.toLowerCase().replace(/_/g, '.');
+    console.log(`Processing event: ${event} (normalized: ${normalizedEvent})`);
+
     // Handle different events
-    switch (event) {
+    switch (normalizedEvent) {
       case 'connection.update':
         await handleConnectionUpdate(supabase, whatsappInstance, data);
         break;
@@ -53,7 +57,6 @@ serve(async (req) => {
         await handleQRCodeUpdate(supabase, whatsappInstance, data);
         break;
       case 'messages.upsert':
-        // Messages handling can be added later for n8n integration
         console.log('Message received for instance:', instance);
         break;
       default:
@@ -104,18 +107,23 @@ async function handleConnectionUpdate(supabase: any, instance: any, data: any) {
 }
 
 async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
-  console.log('QR Code update for instance:', instance.instance_name);
+  console.log('QR Code update received:', JSON.stringify(data));
   
-  if (data.qrcode?.base64) {
+  // Try multiple possible paths for base64 QR code
+  const base64 = data.qrcode?.base64 || data.base64 || data.qr?.base64 || data.code;
+  
+  if (base64) {
     await supabase
       .from('whatsapp_instances')
       .update({
-        qr_code: data.qrcode.base64,
+        qr_code: base64,
         qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
         status: 'qr_pending',
       })
       .eq('id', instance.id);
 
     console.log('Updated QR code for instance:', instance.instance_name);
+  } else {
+    console.log('No base64 QR code found in data');
   }
 }
