@@ -235,6 +235,53 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_instances: {
+        Row: {
+          agent_id: string
+          created_at: string
+          evolution_instance_id: string | null
+          id: string
+          instance_name: string
+          phone_number: string | null
+          qr_code: string | null
+          qr_code_expires_at: string | null
+          status: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          evolution_instance_id?: string | null
+          id?: string
+          instance_name: string
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_code_expires_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          evolution_instance_id?: string | null
+          id?: string
+          instance_name?: string
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_code_expires_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_instances_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -260,6 +307,11 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       plan_type: "Básico" | "Avançado" | "Empresarial" | "Plano Teste Grátis"
+      whatsapp_instance_status:
+        | "disconnected"
+        | "connecting"
+        | "connected"
+        | "qr_pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -389,6 +441,12 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       plan_type: ["Básico", "Avançado", "Empresarial", "Plano Teste Grátis"],
+      whatsapp_instance_status: [
+        "disconnected",
+        "connecting",
+        "connected",
+        "qr_pending",
+      ],
     },
   },
 } as const
