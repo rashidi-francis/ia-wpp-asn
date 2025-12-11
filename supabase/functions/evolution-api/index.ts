@@ -31,15 +31,15 @@ function generateInstanceName(userName: string, agentName: string, agentId: stri
   return `${sanitizedUser}_${sanitizedAgent}_${shortId}`;
 }
 
-// Helper to fetch QR code with retries - using only /instance/connect endpoint
-async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 5): Promise<string | null> {
+// Helper to fetch QR code with retries
+async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 8): Promise<string | null> {
   // Initial wait to let Evolution API initialize the instance
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     console.log(`Fetching QR code attempt ${attempt + 1} for ${instanceName}`);
     
-    // Try the connect endpoint - this is the correct endpoint for QR code
+    // Try the connect endpoint
     const connectResponse = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
       method: 'GET',
       headers: {
@@ -55,20 +55,14 @@ async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 5): Pro
                    connectData.qrcode?.base64 || 
                    connectData.code;
     
-    if (base64) {
+    if (base64 && typeof base64 === 'string' && base64.length > 100) {
       console.log('Found QR code base64!');
       return base64;
     }
     
-    // If count is 0, the QR isn't ready yet - wait and retry
-    if (connectData.count === 0) {
-      console.log('QR not ready yet (count=0), waiting...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      continue;
-    }
-    
-    // Wait between attempts
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait and retry - increasing delay
+    console.log('QR not ready yet, waiting...');
+    await new Promise(resolve => setTimeout(resolve, 2000 + (attempt * 1000)));
   }
   
   return null;
@@ -212,7 +206,7 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
     throw new Error(data.message || 'Failed to create instance');
   }
 
-  // Configure webhook for this instance (using flat structure like curl)
+  // Configure webhook for this instance
   console.log(`Configuring webhook for instance: ${instanceName}`);
   const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
   
@@ -224,14 +218,17 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
         'apikey': EVOLUTION_API_KEY!,
       },
       body: JSON.stringify({
-        url: webhookUrl,
-        webhook_by_events: false,
-        webhook_base64: true,
-        events: [
-          "CONNECTION_UPDATE",
-          "QRCODE_UPDATED",
-          "MESSAGES_UPSERT"
-        ]
+        webhook: {
+          enabled: true,
+          url: webhookUrl,
+          webhookByEvents: false,
+          webhookBase64: true,
+          events: [
+            "CONNECTION_UPDATE",
+            "QRCODE_UPDATED",
+            "MESSAGES_UPSERT"
+          ]
+        }
       }),
     });
 
