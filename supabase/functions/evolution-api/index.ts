@@ -31,15 +31,15 @@ function generateInstanceName(userName: string, agentName: string, agentId: stri
   return `${sanitizedUser}_${sanitizedAgent}_${shortId}`;
 }
 
-// Helper to fetch QR code with retries
-async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 3): Promise<string | null> {
+// Helper to fetch QR code with retries - using only /instance/connect endpoint
+async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 5): Promise<string | null> {
+  // Initial wait to let Evolution API initialize the instance
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     console.log(`Fetching QR code attempt ${attempt + 1} for ${instanceName}`);
     
-    // Wait before each attempt (increasing delay)
-    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
-    
-    // Try the connect endpoint first
+    // Try the connect endpoint - this is the correct endpoint for QR code
     const connectResponse = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
       method: 'GET',
       headers: {
@@ -50,27 +50,25 @@ async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 3): Pro
     const connectData = await connectResponse.json();
     console.log(`Connect response attempt ${attempt + 1}:`, JSON.stringify(connectData));
     
-    if (connectData.base64) {
-      return connectData.base64;
+    // Check all possible paths for base64 QR code
+    const base64 = connectData.base64 || 
+                   connectData.qrcode?.base64 || 
+                   connectData.code;
+    
+    if (base64) {
+      console.log('Found QR code base64!');
+      return base64;
     }
     
-    // Try dedicated QR endpoint
-    const qrResponse = await fetch(`${EVOLUTION_API_URL}/instance/qrcode/${instanceName}`, {
-      method: 'GET',
-      headers: {
-        'apikey': EVOLUTION_API_KEY!,
-      },
-    });
-    
-    const qrData = await qrResponse.json();
-    console.log(`QR endpoint response attempt ${attempt + 1}:`, JSON.stringify(qrData));
-    
-    if (qrData.base64) {
-      return qrData.base64;
+    // If count is 0, the QR isn't ready yet - wait and retry
+    if (connectData.count === 0) {
+      console.log('QR not ready yet (count=0), waiting...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      continue;
     }
-    if (qrData.qrcode?.base64) {
-      return qrData.qrcode.base64;
-    }
+    
+    // Wait between attempts
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
   
   return null;
