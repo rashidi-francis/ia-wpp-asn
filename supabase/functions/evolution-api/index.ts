@@ -11,6 +11,26 @@ const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// Helper function to sanitize names for instance naming
+function sanitizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9]/g, '_') // Replace non-alphanumeric with underscore
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+    .substring(0, 30); // Limit length
+}
+
+// Generate instance name: {user_name}_{agent_name}_{short_id}
+function generateInstanceName(userName: string, agentName: string, agentId: string): string {
+  const sanitizedUser = sanitizeName(userName || 'user');
+  const sanitizedAgent = sanitizeName(agentName || 'agent');
+  const shortId = agentId.substring(0, 8);
+  return `${sanitizedUser}_${sanitizedAgent}_${shortId}`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -36,10 +56,10 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { action, agentId, instanceName } = await req.json();
-    console.log(`Action: ${action}, AgentId: ${agentId}, InstanceName: ${instanceName}`);
+    const { action, agentId } = await req.json();
+    console.log(`Action: ${action}, AgentId: ${agentId}`);
 
-    // Verify user owns the agent
+    // Verify user owns the agent and get user profile
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('id, nome, user_id')
@@ -51,6 +71,19 @@ serve(async (req) => {
       console.error('Agent error:', agentError);
       throw new Error('Agent not found or access denied');
     }
+
+    // Get user profile for naming
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('nome')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userName = profile?.nome || user.email?.split('@')[0] || 'user';
+    const agentName = agent.nome || 'agent';
+    const instanceName = generateInstanceName(userName, agentName, agentId);
+    
+    console.log(`Generated instance name: ${instanceName}`);
 
     let result;
 
@@ -110,6 +143,35 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to create instance');
+  }
+
+  // Configure webhook for this instance
+  console.log(`Configuring webhook for instance: ${instanceName}`);
+  const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
+  
+  const webhookResponse = await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': EVOLUTION_API_KEY!,
+    },
+    body: JSON.stringify({
+      url: webhookUrl,
+      webhook_by_events: false,
+      webhook_base64: true,
+      events: [
+        "CONNECTION_UPDATE",
+        "QRCODE_UPDATED",
+        "MESSAGES_UPSERT"
+      ],
+    }),
+  });
+
+  const webhookData = await webhookResponse.json();
+  console.log('Evolution API webhook response:', JSON.stringify(webhookData));
+
+  if (!webhookResponse.ok) {
+    console.error('Failed to configure webhook, but instance was created');
   }
 
   // Save to database

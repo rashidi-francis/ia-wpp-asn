@@ -38,8 +38,6 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
-  const instanceName = `agent_${agentId.replace(/-/g, '_').substring(0, 20)}`;
-
   useEffect(() => {
     fetchInstance();
     
@@ -103,7 +101,6 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
       body: {
         action,
         agentId,
-        instanceName: instance?.instance_name || instanceName,
       },
     });
 
