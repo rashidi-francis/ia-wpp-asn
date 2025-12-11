@@ -146,9 +146,26 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
       if (result.qrcode) {
         setQrCode(result.qrcode);
         toast({
-          title: "QR Code atualizado!",
+          title: "QR Code gerado!",
           description: "Escaneie o código com seu WhatsApp.",
         });
+      } else if (result.message) {
+        toast({
+          title: "Aguarde...",
+          description: result.message,
+        });
+        // Try again after a short delay
+        setTimeout(async () => {
+          const retryResult = await callEvolutionApi('get_qrcode');
+          if (retryResult.qrcode) {
+            setQrCode(retryResult.qrcode);
+            toast({
+              title: "QR Code gerado!",
+              description: "Escaneie o código com seu WhatsApp.",
+            });
+          }
+          await fetchInstance();
+        }, 3000);
       }
       
       await fetchInstance();

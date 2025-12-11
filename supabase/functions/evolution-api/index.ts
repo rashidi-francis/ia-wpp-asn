@@ -203,7 +203,22 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
 async function getQRCode(supabase: any, agentId: string, instanceName: string) {
   console.log(`Getting QR code for instance: ${instanceName}`);
   
-  // Connect to get QR code
+  // First, try to restart the instance to generate a new QR code
+  console.log(`Restarting instance to generate QR code: ${instanceName}`);
+  const restartResponse = await fetch(`${EVOLUTION_API_URL}/instance/restart/${instanceName}`, {
+    method: 'PUT',
+    headers: {
+      'apikey': EVOLUTION_API_KEY!,
+    },
+  });
+  
+  const restartData = await restartResponse.json();
+  console.log('Evolution API restart response:', JSON.stringify(restartData));
+  
+  // Wait a moment for the instance to restart
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Now try to connect to get QR code
   const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
     method: 'GET',
     headers: {
@@ -218,12 +233,51 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
     throw new Error(data.message || 'Failed to get QR code');
   }
 
-  // Update database with new QR code
-  if (data.base64) {
+  // Check if we got a QR code
+  const qrBase64 = data.base64 || data.qrcode?.base64;
+  
+  if (qrBase64) {
+    // Update database with new QR code
     await supabase
       .from('whatsapp_instances')
       .update({
-        qr_code: data.base64,
+        qr_code: qrBase64,
+        qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
+        status: 'qr_pending',
+      })
+      .eq('agent_id', agentId);
+      
+    return { 
+      success: true, 
+      qrcode: qrBase64,
+      code: data.code
+    };
+  }
+  
+  // If still no QR code, try fetching from fetchInstances endpoint
+  console.log('No QR code from connect, trying fetchInstances...');
+  const fetchResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceName}`, {
+    method: 'GET',
+    headers: {
+      'apikey': EVOLUTION_API_KEY!,
+    },
+  });
+  
+  const fetchData = await fetchResponse.json();
+  console.log('Evolution API fetchInstances response:', JSON.stringify(fetchData));
+  
+  // Check various possible locations for QR code in response
+  let foundQrCode = null;
+  if (Array.isArray(fetchData) && fetchData.length > 0) {
+    const instanceData = fetchData[0];
+    foundQrCode = instanceData.qrcode?.base64 || instanceData.qr?.base64;
+  }
+  
+  if (foundQrCode) {
+    await supabase
+      .from('whatsapp_instances')
+      .update({
+        qr_code: foundQrCode,
         qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
         status: 'qr_pending',
       })
@@ -232,8 +286,9 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
 
   return { 
     success: true, 
-    qrcode: data.base64,
-    code: data.code
+    qrcode: foundQrCode,
+    code: data.code,
+    message: foundQrCode ? undefined : 'QR code may take a moment to generate. Please try again.'
   };
 }
 
