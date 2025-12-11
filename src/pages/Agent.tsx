@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Save } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import emailjs from '@emailjs/browser';
 import { Footer } from "@/components/Footer";
 import { TrialExpiredDialog } from "@/components/TrialExpiredDialog";
+import WhatsAppConnection from "@/components/WhatsAppConnection";
 
 interface Agent {
   id: string;
@@ -458,31 +459,7 @@ const Agent = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow animate-fade-in-scale" style={{ animationDelay: "0.2s" }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              <Calendar className="h-5 w-5 text-primary" />
-              Próximo Passo: Conectar WhatsApp à IA
-            </CardTitle>
-            <CardDescription>
-              Agende uma reunião com nosso time para integrar seu WhatsApp
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm">
-              Após configurar suas instruções, agende uma reunião rápida com nossa equipe.
-              Durante a reunião, enviaremos o QR Code para conectar seu número de WhatsApp à IA.
-            </p>
-            <Button
-              size="lg"
-              className="w-full shadow-lg hover:shadow-glow transition-all duration-300"
-              onClick={() => navigate("/agendar")}
-            >
-              <Calendar className="mr-2 h-5 w-5" />
-              Agendar Conexão WhatsApp na IA
-            </Button>
-          </CardContent>
-        </Card>
+        <WhatsAppConnection agentId={id!} agentName={nome || "Agente"} />
       </main>
       <TrialExpiredDialog open={showTrialExpired} onOpenChange={setShowTrialExpired} />
       <Footer />
