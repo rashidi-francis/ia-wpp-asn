@@ -203,22 +203,83 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
 async function getQRCode(supabase: any, agentId: string, instanceName: string) {
   console.log(`Getting QR code for instance: ${instanceName}`);
   
-  // First, try to restart the instance to generate a new QR code
-  console.log(`Restarting instance to generate QR code: ${instanceName}`);
-  const restartResponse = await fetch(`${EVOLUTION_API_URL}/instance/restart/${instanceName}`, {
-    method: 'PUT',
+  // First, check instance status
+  const statusResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceName}`, {
+    method: 'GET',
     headers: {
       'apikey': EVOLUTION_API_KEY!,
     },
   });
   
-  const restartData = await restartResponse.json();
-  console.log('Evolution API restart response:', JSON.stringify(restartData));
+  const statusData = await statusResponse.json();
+  console.log('Instance status:', JSON.stringify(statusData));
   
-  // Wait a moment for the instance to restart
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  let instanceStatus = 'close';
+  if (Array.isArray(statusData) && statusData.length > 0) {
+    instanceStatus = statusData[0].connectionStatus || 'close';
+  }
   
-  // Now try to connect to get QR code
+  console.log(`Instance connectionStatus: ${instanceStatus}`);
+  
+  // If instance is closed or not connecting properly, delete and recreate
+  if (instanceStatus === 'close') {
+    console.log('Instance is closed, deleting and recreating...');
+    
+    // Delete existing instance
+    const deleteResponse = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': EVOLUTION_API_KEY!,
+      },
+    });
+    const deleteData = await deleteResponse.json();
+    console.log('Delete response:', JSON.stringify(deleteData));
+    
+    // Wait a moment
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Recreate instance with QR code
+    console.log('Recreating instance...');
+    const createResponse = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY!,
+      },
+      body: JSON.stringify({
+        instanceName: instanceName,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS",
+      }),
+    });
+    
+    const createData = await createResponse.json();
+    console.log('Create response:', JSON.stringify(createData));
+    
+    if (createResponse.ok && createData.qrcode?.base64) {
+      // Update database with new QR code
+      await supabase
+        .from('whatsapp_instances')
+        .update({
+          qr_code: createData.qrcode.base64,
+          qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
+          status: 'qr_pending',
+          evolution_instance_id: createData.instance?.instanceName || instanceName,
+        })
+        .eq('agent_id', agentId);
+        
+      return { 
+        success: true, 
+        qrcode: createData.qrcode.base64,
+      };
+    }
+    
+    // If still no QR code after create, try connect endpoint
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  
+  // Try to connect to get QR code
+  console.log('Trying connect endpoint...');
   const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
     method: 'GET',
     headers: {
@@ -228,10 +289,6 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
 
   const data = await response.json();
   console.log('Evolution API connect response:', JSON.stringify(data));
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to get QR code');
-  }
 
   // Check if we got a QR code
   const qrBase64 = data.base64 || data.qrcode?.base64;
@@ -253,42 +310,11 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
       code: data.code
     };
   }
-  
-  // If still no QR code, try fetching from fetchInstances endpoint
-  console.log('No QR code from connect, trying fetchInstances...');
-  const fetchResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceName}`, {
-    method: 'GET',
-    headers: {
-      'apikey': EVOLUTION_API_KEY!,
-    },
-  });
-  
-  const fetchData = await fetchResponse.json();
-  console.log('Evolution API fetchInstances response:', JSON.stringify(fetchData));
-  
-  // Check various possible locations for QR code in response
-  let foundQrCode = null;
-  if (Array.isArray(fetchData) && fetchData.length > 0) {
-    const instanceData = fetchData[0];
-    foundQrCode = instanceData.qrcode?.base64 || instanceData.qr?.base64;
-  }
-  
-  if (foundQrCode) {
-    await supabase
-      .from('whatsapp_instances')
-      .update({
-        qr_code: foundQrCode,
-        qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
-        status: 'qr_pending',
-      })
-      .eq('agent_id', agentId);
-  }
 
   return { 
     success: true, 
-    qrcode: foundQrCode,
-    code: data.code,
-    message: foundQrCode ? undefined : 'QR code may take a moment to generate. Please try again.'
+    qrcode: null,
+    message: 'QR code may take a moment to generate. Please try again.'
   };
 }
 
