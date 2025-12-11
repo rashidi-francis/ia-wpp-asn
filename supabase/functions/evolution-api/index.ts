@@ -31,6 +31,51 @@ function generateInstanceName(userName: string, agentName: string, agentId: stri
   return `${sanitizedUser}_${sanitizedAgent}_${shortId}`;
 }
 
+// Helper to fetch QR code with retries
+async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 3): Promise<string | null> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    console.log(`Fetching QR code attempt ${attempt + 1} for ${instanceName}`);
+    
+    // Wait before each attempt (increasing delay)
+    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+    
+    // Try the connect endpoint first
+    const connectResponse = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
+      method: 'GET',
+      headers: {
+        'apikey': EVOLUTION_API_KEY!,
+      },
+    });
+    
+    const connectData = await connectResponse.json();
+    console.log(`Connect response attempt ${attempt + 1}:`, JSON.stringify(connectData));
+    
+    if (connectData.base64) {
+      return connectData.base64;
+    }
+    
+    // Try dedicated QR endpoint
+    const qrResponse = await fetch(`${EVOLUTION_API_URL}/instance/qrcode/${instanceName}`, {
+      method: 'GET',
+      headers: {
+        'apikey': EVOLUTION_API_KEY!,
+      },
+    });
+    
+    const qrData = await qrResponse.json();
+    console.log(`QR endpoint response attempt ${attempt + 1}:`, JSON.stringify(qrData));
+    
+    if (qrData.base64) {
+      return qrData.base64;
+    }
+    if (qrData.qrcode?.base64) {
+      return qrData.qrcode.base64;
+    }
+  }
+  
+  return null;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -124,6 +169,30 @@ serve(async (req) => {
 async function createInstance(supabase: any, agent: any, instanceName: string) {
   console.log(`Creating instance: ${instanceName}`);
   
+  // First check if instance exists and delete it
+  try {
+    const checkResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceName}`, {
+      method: 'GET',
+      headers: {
+        'apikey': EVOLUTION_API_KEY!,
+      },
+    });
+    const checkData = await checkResponse.json();
+    
+    if (Array.isArray(checkData) && checkData.length > 0) {
+      console.log('Instance exists, deleting first...');
+      await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': EVOLUTION_API_KEY!,
+        },
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  } catch (e) {
+    console.log('Check/delete failed, continuing:', e);
+  }
+  
   // Create instance in Evolution API
   const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
     method: 'POST',
@@ -149,29 +218,40 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
   console.log(`Configuring webhook for instance: ${instanceName}`);
   const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
   
-  const webhookResponse = await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': EVOLUTION_API_KEY!,
-    },
-    body: JSON.stringify({
-      url: webhookUrl,
-      webhook_by_events: false,
-      webhook_base64: true,
-      events: [
-        "CONNECTION_UPDATE",
-        "QRCODE_UPDATED",
-        "MESSAGES_UPSERT"
-      ],
-    }),
-  });
+  try {
+    const webhookResponse = await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY!,
+      },
+      body: JSON.stringify({
+        webhook: {
+          enabled: true,
+          url: webhookUrl,
+          webhook_by_events: false,
+          webhook_base64: true,
+          events: [
+            "CONNECTION_UPDATE",
+            "QRCODE_UPDATED",
+            "MESSAGES_UPSERT"
+          ],
+        }
+      }),
+    });
 
-  const webhookData = await webhookResponse.json();
-  console.log('Evolution API webhook response:', JSON.stringify(webhookData));
+    const webhookData = await webhookResponse.json();
+    console.log('Evolution API webhook response:', JSON.stringify(webhookData));
+  } catch (e) {
+    console.error('Failed to configure webhook:', e);
+  }
 
-  if (!webhookResponse.ok) {
-    console.error('Failed to configure webhook, but instance was created');
+  // Try to get QR code
+  let qrBase64 = data.qrcode?.base64 || null;
+  
+  if (!qrBase64) {
+    console.log('No QR in create response, fetching with retries...');
+    qrBase64 = await fetchQRCodeWithRetries(instanceName, 2);
   }
 
   // Save to database
@@ -180,10 +260,10 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
     .upsert({
       agent_id: agent.id,
       instance_name: instanceName,
-      status: 'qr_pending',
+      status: qrBase64 ? 'qr_pending' : 'connecting',
       evolution_instance_id: data.instance?.instanceName || instanceName,
-      qr_code: data.qrcode?.base64 || null,
-      qr_code_expires_at: data.qrcode?.base64 ? new Date(Date.now() + 45000).toISOString() : null,
+      qr_code: qrBase64,
+      qr_code_expires_at: qrBase64 ? new Date(Date.now() + 45000).toISOString() : null,
     }, {
       onConflict: 'agent_id'
     });
@@ -195,8 +275,9 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
 
   return { 
     success: true, 
-    qrcode: data.qrcode?.base64,
-    instanceName: instanceName 
+    qrcode: qrBase64,
+    instanceName: instanceName,
+    message: qrBase64 ? null : 'Instância criada. Clique em "Gerar QR Code" para obter o código.'
   };
 }
 
@@ -214,32 +295,27 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
   const statusData = await statusResponse.json();
   console.log('Instance status:', JSON.stringify(statusData));
   
-  let instanceStatus = 'close';
-  if (Array.isArray(statusData) && statusData.length > 0) {
-    instanceStatus = statusData[0].connectionStatus || 'close';
-  }
+  let instanceExists = Array.isArray(statusData) && statusData.length > 0;
+  let instanceStatus = instanceExists ? statusData[0].connectionStatus : null;
   
-  console.log(`Instance connectionStatus: ${instanceStatus}`);
+  console.log(`Instance exists: ${instanceExists}, connectionStatus: ${instanceStatus}`);
   
-  // If instance is closed or not connecting properly, delete and recreate
-  if (instanceStatus === 'close') {
-    console.log('Instance is closed, deleting and recreating...');
+  // If instance doesn't exist or is closed, create a fresh one
+  if (!instanceExists || instanceStatus === 'close') {
+    console.log('Creating fresh instance for QR code...');
     
-    // Delete existing instance
-    const deleteResponse = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': EVOLUTION_API_KEY!,
-      },
-    });
-    const deleteData = await deleteResponse.json();
-    console.log('Delete response:', JSON.stringify(deleteData));
+    // Delete if exists
+    if (instanceExists) {
+      await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': EVOLUTION_API_KEY!,
+        },
+      });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
     
-    // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Recreate instance with QR code
-    console.log('Recreating instance...');
+    // Create new instance
     const createResponse = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
       method: 'POST',
       headers: {
@@ -254,47 +330,18 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
     });
     
     const createData = await createResponse.json();
-    console.log('Create response:', JSON.stringify(createData));
+    console.log('Fresh create response:', JSON.stringify(createData));
     
-    if (createResponse.ok && createData.qrcode?.base64) {
-      // Update database with new QR code
-      await supabase
-        .from('whatsapp_instances')
-        .update({
-          qr_code: createData.qrcode.base64,
-          qr_code_expires_at: new Date(Date.now() + 45000).toISOString(),
-          status: 'qr_pending',
-          evolution_instance_id: createData.instance?.instanceName || instanceName,
-        })
-        .eq('agent_id', agentId);
-        
-      return { 
-        success: true, 
-        qrcode: createData.qrcode.base64,
-      };
+    if (!createResponse.ok) {
+      throw new Error('Failed to create instance');
     }
-    
-    // If still no QR code after create, try connect endpoint
-    await new Promise(resolve => setTimeout(resolve, 2000));
   }
   
-  // Try to connect to get QR code
-  console.log('Trying connect endpoint...');
-  const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
-    method: 'GET',
-    headers: {
-      'apikey': EVOLUTION_API_KEY!,
-    },
-  });
-
-  const data = await response.json();
-  console.log('Evolution API connect response:', JSON.stringify(data));
-
-  // Check if we got a QR code
-  const qrBase64 = data.base64 || data.qrcode?.base64;
+  // Now fetch QR code with retries
+  const qrBase64 = await fetchQRCodeWithRetries(instanceName, 3);
   
   if (qrBase64) {
-    // Update database with new QR code
+    // Update database with QR code
     await supabase
       .from('whatsapp_instances')
       .update({
@@ -307,14 +354,21 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
     return { 
       success: true, 
       qrcode: qrBase64,
-      code: data.code
     };
   }
 
+  // If all attempts failed, update status
+  await supabase
+    .from('whatsapp_instances')
+    .update({
+      status: 'connecting',
+    })
+    .eq('agent_id', agentId);
+
   return { 
-    success: true, 
+    success: false, 
     qrcode: null,
-    message: 'QR code may take a moment to generate. Please try again.'
+    error: 'Não foi possível gerar o QR Code. Verifique se a Evolution API está funcionando corretamente.'
   };
 }
 
