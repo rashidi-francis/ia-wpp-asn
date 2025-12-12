@@ -425,10 +425,19 @@ async function getInstanceStatus(supabase: any, agentId: string, instanceName: s
     status = 'disconnected';
   }
 
-  // Get phone number if connected
+  // Get phone number if connected - try multiple sources
   let phoneNumber = null;
-  if (status === 'connected' && data.instance?.owner) {
-    phoneNumber = data.instance.owner.replace('@s.whatsapp.net', '');
+  if (status === 'connected') {
+    // Try owner field
+    if (data.instance?.owner) {
+      phoneNumber = data.instance.owner.replace('@s.whatsapp.net', '');
+    }
+    // Try profilePictureUrl pattern or other fields
+    if (!phoneNumber && data.instance?.profilePicUrl) {
+      const match = data.instance.profilePicUrl.match(/(\d+)@/);
+      if (match) phoneNumber = match[1];
+    }
+    console.log('Extracted phone number:', phoneNumber);
   }
 
   // Update database with real status from Evolution API
@@ -446,7 +455,7 @@ async function getInstanceStatus(supabase: any, agentId: string, instanceName: s
     .update(updateData)
     .eq('agent_id', agentId);
 
-  console.log(`Updated database status to: ${status}`);
+  console.log(`Updated database status to: ${status}, phone: ${phoneNumber}`);
 
   return { 
     success: true, 
