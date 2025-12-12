@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, QrCode, Smartphone, Wifi, WifiOff, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, QrCode, Smartphone, Wifi, WifiOff, RefreshCw, Trash2, Code, ExternalLink } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import MetaApiDialog from "./MetaApiDialog";
+import EmbedCodeDialog from "./EmbedCodeDialog";
 
 interface WhatsAppConnectionProps {
   agentId: string;
@@ -37,6 +39,8 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   const [actionLoading, setActionLoading] = useState(false);
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [metaApiDialogOpen, setMetaApiDialogOpen] = useState(false);
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
 
   // Sync agent to n8n when WhatsApp is connected
   const syncAgentToN8n = async () => {
@@ -325,160 +329,220 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Smartphone className="w-5 h-5 text-[#25D366]" />
-              Conexão WhatsApp
-            </CardTitle>
-            <CardDescription>
-              Conecte o WhatsApp para ativar o agente {agentName}
-            </CardDescription>
-          </div>
-          {getStatusBadge()}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!instance ? (
-          <div className="text-center py-6">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#25D366]/10 flex items-center justify-center">
-              <QrCode className="w-10 h-10 text-[#25D366]" />
+    <>
+      <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Smartphone className="w-5 h-5 text-[#25D366]" />
+                Conexão WhatsApp via Evolution QR
+              </CardTitle>
+              <CardDescription>
+                Conecte o WhatsApp para ativar o agente {agentName}
+              </CardDescription>
             </div>
-            <p className="text-muted-foreground mb-4">
-              Nenhuma conexão WhatsApp configurada para este agente.
-            </p>
-            <Button 
-              onClick={handleCreateInstance} 
-              disabled={actionLoading}
-              className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
-            >
-              {actionLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <QrCode className="w-4 h-4 mr-2" />
-              )}
-              Conectar WhatsApp
-            </Button>
+            {getStatusBadge()}
           </div>
-        ) : instance.status === 'connected' ? (
-          <div className="text-center py-6">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
-              <Wifi className="w-10 h-10 text-green-500" />
-            </div>
-            <p className="text-green-400 font-medium mb-1">WhatsApp Conectado!</p>
-            {instance.phone_number && (
-              <p className="text-muted-foreground text-sm mb-4">
-                Número: {instance.phone_number}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!instance ? (
+            <div className="text-center py-6">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#25D366]/10 flex items-center justify-center">
+                <QrCode className="w-10 h-10 text-[#25D366]" />
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Nenhuma conexão WhatsApp configurada para este agente.
               </p>
-            )}
-            <p className="text-muted-foreground text-sm mb-4">
-              Seu agente está pronto para receber mensagens.
-            </p>
-            <div className="flex gap-2 justify-center">
               <Button 
-                variant="outline" 
-                onClick={handleCheckStatus}
+                onClick={handleCreateInstance} 
                 disabled={actionLoading}
+                className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
               >
                 {actionLoading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <QrCode className="w-4 h-4 mr-2" />
                 )}
-                Verificar Status
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleDisconnect}
-                disabled={actionLoading}
-              >
-                Desconectar
+                Conectar WhatsApp
               </Button>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {qrCode ? (
-              <div className="text-center">
-                <div className="bg-white p-4 rounded-lg inline-block mb-4">
-                  <img 
-                    src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
-                    alt="QR Code WhatsApp"
-                    className="w-64 h-64"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Escaneie o QR Code com seu WhatsApp para conectar
-                </p>
-                <div className="flex gap-2 justify-center flex-wrap">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleGetQRCode}
-                    disabled={actionLoading}
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                    )}
-                    Atualizar QR Code
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCheckStatus}
-                    disabled={actionLoading}
-                  >
-                    Verificar Conexão
-                  </Button>
-                </div>
+          ) : instance.status === 'connected' ? (
+            <div className="text-center py-6">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Wifi className="w-10 h-10 text-green-500" />
               </div>
-            ) : (
-              <div className="text-center py-4">
+              <p className="text-green-400 font-medium mb-1">WhatsApp Conectado!</p>
+              {instance.phone_number && (
+                <p className="text-muted-foreground text-sm mb-4">
+                  Número: {instance.phone_number}
+                </p>
+              )}
+              <p className="text-muted-foreground text-sm mb-4">
+                Seu agente está pronto para receber mensagens.
+              </p>
+              <div className="flex gap-2 justify-center">
                 <Button 
-                  onClick={handleGetQRCode}
+                  variant="outline" 
+                  onClick={handleCheckStatus}
                   disabled={actionLoading}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
                 >
                   {actionLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <QrCode className="w-4 h-4 mr-2" />
+                    <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  Gerar QR Code
+                  Verificar Status
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDisconnect}
+                  disabled={actionLoading}
+                >
+                  Desconectar
                 </Button>
               </div>
-            )}
-            
-            <div className="pt-4 border-t border-border/50">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Remover conexão
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remover conexão WhatsApp?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação irá desconectar e remover completamente a conexão WhatsApp deste agente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteInstance}>
-                      Remover
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </div>
+          ) : (
+            <div className="space-y-4">
+              {qrCode ? (
+                <div className="text-center">
+                  <div className="bg-white p-4 rounded-lg inline-block mb-4">
+                    <img 
+                      src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
+                      alt="QR Code WhatsApp"
+                      className="w-64 h-64"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Escaneie o QR Code com seu WhatsApp para conectar
+                  </p>
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleGetQRCode}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Atualizar QR Code
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCheckStatus}
+                      disabled={actionLoading}
+                    >
+                      Verificar Conexão
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <Button 
+                    onClick={handleGetQRCode}
+                    disabled={actionLoading}
+                    className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <QrCode className="w-4 h-4 mr-2" />
+                    )}
+                    Gerar QR Code
+                  </Button>
+                </div>
+              )}
+              
+              <div className="pt-4 border-t border-border/50">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remover conexão
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remover conexão WhatsApp?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação irá desconectar e remover completamente a conexão WhatsApp deste agente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteInstance}>
+                        Remover
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex-col items-start pt-4 border-t border-border/50 bg-muted/30">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>Nota:</strong> A conexão via Evolution QR é uma versão simplificada e rápida, porém permite que você tenha gratuitamente em média apenas 300 interações de conversas* (que já é muito dependendo do nicho). Quando esgotarem suas interações o WhatsApp poderá deslogar, onde você pode: criar novo agente, copiar as instruções para poder logar novamente nessa mesma versão simplificada, ou: logar usando a API oficial da META, que se encontra logo aqui abaixo:
+          </p>
+        </CardFooter>
+      </Card>
+
+      {/* Box horizontal com API META e Incorporação */}
+      <Card className="mt-4 bg-card/50 backdrop-blur-sm border-border/50">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50">
+            {/* API Oficial META */}
+            <button 
+              onClick={() => setMetaApiDialogOpen(true)}
+              className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.546 20.2A1.5 1.5 0 003.8 21.454l3.032-.892A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm group-hover:text-primary transition-colors">Login API Oficial da META WhatsApp</p>
+                <p className="text-xs text-muted-foreground">Conexão direta e ilimitada via Cloud API</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+            </button>
+
+            {/* Incorporar no Site */}
+            <button 
+              onClick={() => setEmbedDialogOpen(true)}
+              className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Code className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm group-hover:text-primary transition-colors">&lt; / &gt; Incorporar no seu Site</p>
+                <p className="text-xs text-muted-foreground">Gerar código HTML para embed</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+            </button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <MetaApiDialog 
+        open={metaApiDialogOpen} 
+        onOpenChange={setMetaApiDialogOpen}
+        agentId={agentId}
+        agentName={agentName}
+      />
+      <EmbedCodeDialog 
+        open={embedDialogOpen} 
+        onOpenChange={setEmbedDialogOpen}
+        agentId={agentId}
+        agentName={agentName}
+      />
+    </>
   );
 };
 
