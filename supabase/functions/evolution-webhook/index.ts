@@ -82,12 +82,29 @@ async function handleConnectionUpdate(supabase: any, instance: any, data: any) {
   
   let status: 'disconnected' | 'connecting' | 'connected' | 'qr_pending' = 'disconnected';
   
-  if (data.state === 'open') {
+  // Map Evolution API states to our status
+  // Evolution API states: 'open', 'connecting', 'close', 'qrcode'
+  const state = data.state?.toLowerCase();
+  
+  if (state === 'open' || state === 'connected') {
     status = 'connected';
-  } else if (data.state === 'connecting') {
+  } else if (state === 'connecting') {
     status = 'connecting';
-  } else if (data.state === 'close') {
+  } else if (state === 'close' || state === 'disconnected') {
+    // Only mark as disconnected if statusReason indicates a real disconnect
+    // statusReason 405 can be a temporary state during reconnection
+    if (data.statusReason === 405) {
+      console.log('Received 405 status - checking if this is a temporary disconnect');
+      // Keep current status if it's just a brief reconnection cycle
+      const currentStatus = instance.status;
+      if (currentStatus === 'connected') {
+        console.log('Ignoring brief disconnect, keeping connected status');
+        return; // Don't update status for brief disconnects
+      }
+    }
     status = 'disconnected';
+  } else if (state === 'qrcode') {
+    status = 'qr_pending';
   }
 
   const updateData: any = { status };
