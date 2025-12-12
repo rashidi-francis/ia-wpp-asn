@@ -380,39 +380,79 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
 async function getInstanceStatus(supabase: any, agentId: string, instanceName: string) {
   console.log(`Getting status for instance: ${instanceName}`);
   
-  const response = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`, {
+  // First try connectionState endpoint
+  let response = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`, {
     method: 'GET',
     headers: {
       'apikey': EVOLUTION_API_KEY!,
     },
   });
 
-  const data = await response.json();
-  console.log('Evolution API status response:', JSON.stringify(data));
+  let data = await response.json();
+  console.log('Evolution API connectionState response:', JSON.stringify(data));
+
+  // If connectionState doesn't give clear status, try fetchInstances
+  if (!data.state && !data.instance?.state) {
+    console.log('Trying fetchInstances endpoint...');
+    const fetchResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceName}`, {
+      method: 'GET',
+      headers: {
+        'apikey': EVOLUTION_API_KEY!,
+      },
+    });
+    
+    const fetchData = await fetchResponse.json();
+    console.log('Evolution API fetchInstances response:', JSON.stringify(fetchData));
+    
+    if (Array.isArray(fetchData) && fetchData.length > 0) {
+      data = { 
+        state: fetchData[0].connectionStatus,
+        instance: fetchData[0]
+      };
+    }
+  }
 
   let status: 'disconnected' | 'connecting' | 'connected' | 'qr_pending' = 'disconnected';
+  const state = (data.state || data.instance?.state || data.instance?.connectionStatus)?.toLowerCase();
   
-  if (data.state === 'open' || data.instance?.state === 'open') {
+  console.log(`Evaluated state: ${state}`);
+  
+  if (state === 'open' || state === 'connected') {
     status = 'connected';
-  } else if (data.state === 'connecting' || data.instance?.state === 'connecting') {
+  } else if (state === 'connecting') {
     status = 'connecting';
-  } else if (data.state === 'close' || data.instance?.state === 'close') {
+  } else if (state === 'close' || state === 'disconnected') {
     status = 'disconnected';
   }
 
-  // Update database
+  // Get phone number if connected
+  let phoneNumber = null;
+  if (status === 'connected' && data.instance?.owner) {
+    phoneNumber = data.instance.owner.replace('@s.whatsapp.net', '');
+  }
+
+  // Update database with real status from Evolution API
+  const updateData: any = { status };
+  if (phoneNumber) {
+    updateData.phone_number = phoneNumber;
+  }
+  if (status === 'connected') {
+    updateData.qr_code = null;
+    updateData.qr_code_expires_at = null;
+  }
+
   await supabase
     .from('whatsapp_instances')
-    .update({ 
-      status,
-      phone_number: data.instance?.profilePictureUrl ? data.instance?.owner : null,
-    })
+    .update(updateData)
     .eq('agent_id', agentId);
+
+  console.log(`Updated database status to: ${status}`);
 
   return { 
     success: true, 
     status,
-    state: data.state || data.instance?.state 
+    state: state,
+    phoneNumber
   };
 }
 
