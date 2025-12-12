@@ -80,31 +80,41 @@ serve(async (req) => {
 async function handleConnectionUpdate(supabase: any, instance: any, data: any) {
   console.log('Connection update:', JSON.stringify(data));
   
-  let status: 'disconnected' | 'connecting' | 'connected' | 'qr_pending' = 'disconnected';
-  
-  // Map Evolution API states to our status
-  // Evolution API states: 'open', 'connecting', 'close', 'qrcode'
   const state = data.state?.toLowerCase();
+  const currentStatus = instance.status;
   
+  // IGNORE statusReason 405 completely - this is a temporary reconnection cycle
+  // Evolution API sends these constantly even when connection is active
+  if (data.statusReason === 405) {
+    console.log('Ignoring 405 status - temporary reconnection cycle, keeping current status:', currentStatus);
+    return;
+  }
+  
+  // IGNORE 'connecting' events if we're already connected or were recently connected
+  // Evolution API sends these in loops even when connection is stable
+  if (state === 'connecting' && (currentStatus === 'connected' || currentStatus === 'connecting')) {
+    console.log('Ignoring connecting event - already in stable state:', currentStatus);
+    return;
+  }
+  
+  let status: 'disconnected' | 'connecting' | 'connected' | 'qr_pending' = currentStatus || 'disconnected';
+  
+  // Only update status for definitive state changes
   if (state === 'open' || state === 'connected') {
     status = 'connected';
-  } else if (state === 'connecting') {
-    status = 'connecting';
-  } else if (state === 'close' || state === 'disconnected') {
-    // Only mark as disconnected if statusReason indicates a real disconnect
-    // statusReason 405 can be a temporary state during reconnection
-    if (data.statusReason === 405) {
-      console.log('Received 405 status - checking if this is a temporary disconnect');
-      // Keep current status if it's just a brief reconnection cycle
-      const currentStatus = instance.status;
-      if (currentStatus === 'connected') {
-        console.log('Ignoring brief disconnect, keeping connected status');
-        return; // Don't update status for brief disconnects
-      }
-    }
-    status = 'disconnected';
   } else if (state === 'qrcode') {
     status = 'qr_pending';
+  } else if (state === 'connecting' && currentStatus === 'disconnected') {
+    // Only set to connecting if we were truly disconnected
+    status = 'connecting';
+  }
+  // Note: We NO LONGER set to 'disconnected' from webhook events
+  // The only way to disconnect should be explicit user action or QR timeout
+  
+  // Don't update if status hasn't changed
+  if (status === currentStatus) {
+    console.log('Status unchanged, skipping update:', status);
+    return;
   }
 
   const updateData: any = { status };
