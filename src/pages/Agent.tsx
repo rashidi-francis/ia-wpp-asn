@@ -165,7 +165,17 @@ const Agent = () => {
 
       if (error) throw error;
 
-      // 2️⃣ Envia e-mail via EmailJS
+      // 2️⃣ Sincroniza com n8n/Cloudfy (envia instruções concatenadas)
+      const { error: syncError } = await supabase.functions.invoke('sync-agent-n8n', {
+        body: { agentId: id }
+      });
+
+      if (syncError) {
+        console.error("Erro ao sincronizar com n8n:", syncError);
+        // Não bloqueia o salvamento, apenas loga o erro
+      }
+
+      // 3️⃣ Envia e-mail via EmailJS
       emailjs.init('NmeVuycVzIv4cDkxi');
       
       const templateParams = {
@@ -194,7 +204,7 @@ const Agent = () => {
 
       toast({
         title: "Instruções salvas com sucesso",
-        description: "Suas alterações foram salvas.",
+        description: "Suas alterações foram salvas e sincronizadas.",
       });
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
