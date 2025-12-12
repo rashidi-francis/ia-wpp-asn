@@ -61,6 +61,7 @@ const EmbedCodeDialog = ({ open, onOpenChange, agentId, agentName }: EmbedCodeDi
   const generateEmbedCode = () => {
     const escapedName = agentName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const escapedInstructions = agentInstructions.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
     return `<!-- ChatASN Widget - Agente: ${agentName} -->
 <div id="chatasn-widget-container"></div>
@@ -71,10 +72,11 @@ const EmbedCodeDialog = ({ open, onOpenChange, agentId, agentName }: EmbedCodeDi
     agentId: "${agentId}",
     agentName: "${escapedName}",
     primaryColor: "#25D366",
-    position: "bottom-right", // bottom-right, bottom-left
+    position: "bottom-right",
     greeting: "Olá! Como posso ajudá-lo hoje?",
     placeholder: "Digite sua mensagem...",
-    systemPrompt: \`${escapedInstructions}\`
+    systemPrompt: \`${escapedInstructions}\`,
+    apiUrl: "${supabaseUrl}/functions/v1/widget-chat"
   };
 
   // Estilos do Widget
@@ -245,17 +247,38 @@ const EmbedCodeDialog = ({ open, onOpenChange, agentId, agentName }: EmbedCodeDi
     addMessage(text, 'user');
     input.value = '';
     
-    // Simulação de resposta (integrar com sua API)
     const typingMsg = document.createElement('div');
     typingMsg.className = 'chatasn-msg bot';
     typingMsg.textContent = 'Digitando...';
     messages.appendChild(typingMsg);
     
-    // TODO: Integrar com API de IA aqui
-    setTimeout(() => {
+    try {
+      const response = await fetch(AGENT_CONFIG.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agentId: AGENT_CONFIG.agentId,
+          systemPrompt: AGENT_CONFIG.systemPrompt,
+          messages: chatHistory.filter(m => m.role !== 'assistant' || m.content !== AGENT_CONFIG.greeting).slice(-10)
+        })
+      });
+      
       typingMsg.remove();
-      addMessage('Obrigado pela mensagem! Em breve um atendente entrará em contato.', 'bot');
-    }, 1500);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        addMessage(errorData.error || 'Desculpe, ocorreu um erro. Tente novamente.', 'bot');
+        return;
+      }
+      
+      const data = await response.json();
+      addMessage(data.message, 'bot');
+    } catch (error) {
+      typingMsg.remove();
+      addMessage('Desculpe, não foi possível processar sua mensagem. Tente novamente.', 'bot');
+    }
   }
 
   send.onclick = sendMessage;
