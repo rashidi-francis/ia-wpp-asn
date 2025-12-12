@@ -9,6 +9,9 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// n8n webhook URL for forwarding WhatsApp messages
+const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/5acbbf43-ed70-4111-9049-b88bca8370a9";
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -57,7 +60,8 @@ serve(async (req) => {
         await handleQRCodeUpdate(supabase, whatsappInstance, data);
         break;
       case 'messages.upsert':
-        console.log('Message received for instance:', instance);
+        console.log('Message received for instance:', instance, '- forwarding to n8n');
+        await forwardMessageToN8N(whatsappInstance, payload);
         break;
       default:
         console.log('Unhandled event:', event);
@@ -152,5 +156,34 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
     console.log('Updated QR code for instance:', instance.instance_name);
   } else {
     console.log('No base64 QR code found in data');
+  }
+}
+
+async function forwardMessageToN8N(instance: any, payload: any) {
+  try {
+    console.log('Forwarding message to n8n webhook...');
+    console.log('Instance:', instance.instance_name);
+    console.log('Payload:', JSON.stringify(payload));
+    
+    const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...payload,
+        instance_name: instance.instance_name,
+        agent_id: instance.agent_id,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('n8n webhook error:', response.status, errorText);
+    } else {
+      console.log('Message forwarded to n8n successfully');
+    }
+  } catch (error) {
+    console.error('Error forwarding message to n8n:', error);
   }
 }
