@@ -38,6 +38,27 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
+  // Sync agent to n8n when WhatsApp is connected
+  const syncAgentToN8n = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      console.log('Syncing agent to n8n after WhatsApp connection...');
+      const { data, error } = await supabase.functions.invoke('sync-agent-n8n', {
+        body: { agentId },
+      });
+
+      if (error) {
+        console.error('Error syncing to n8n:', error);
+      } else {
+        console.log('Agent synced to n8n successfully:', data);
+      }
+    } catch (error) {
+      console.error('Error syncing agent to n8n:', error);
+    }
+  };
+
   useEffect(() => {
     fetchInstance();
     
@@ -52,16 +73,23 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
           table: 'whatsapp_instances',
           filter: `agent_id=eq.${agentId}`,
         },
-        (payload) => {
+        async (payload) => {
           console.log('Realtime update:', payload);
           if (payload.eventType === 'DELETE') {
             setInstance(null);
             setQrCode(null);
           } else {
             const newData = payload.new as WhatsAppInstance;
+            const oldData = payload.old as WhatsAppInstance | null;
             setInstance(newData);
             if (newData.qr_code) {
               setQrCode(newData.qr_code);
+            }
+            
+            // When status changes to connected, sync agent to n8n with instance_name
+            if (newData.status === 'connected' && oldData?.status !== 'connected') {
+              console.log('WhatsApp connected! Triggering n8n sync...');
+              await syncAgentToN8n();
             }
           }
         }
