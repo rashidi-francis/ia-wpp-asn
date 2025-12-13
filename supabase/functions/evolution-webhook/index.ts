@@ -60,7 +60,10 @@ serve(async (req) => {
         await handleQRCodeUpdate(supabase, whatsappInstance, data);
         break;
       case 'messages.upsert':
-        console.log('Message received for instance:', instance, '- forwarding to n8n');
+        console.log('Message received for instance:', instance);
+        // Save message to database
+        await saveMessageToDatabase(supabase, whatsappInstance, data);
+        // Forward to n8n
         await forwardMessageToN8N(whatsappInstance, payload);
         break;
       default:
@@ -159,11 +162,153 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
   }
 }
 
+async function saveMessageToDatabase(supabase: any, instance: any, data: any) {
+  try {
+    // Evolution API can send messages in different formats
+    const messages = data.messages || [data];
+    
+    for (const message of messages) {
+      const key = message.key || {};
+      const remoteJid = key.remoteJid || message.remoteJid;
+      const messageId = key.id || message.id;
+      const isFromMe = key.fromMe || message.fromMe || false;
+      
+      if (!remoteJid) {
+        console.log('No remoteJid found in message, skipping');
+        continue;
+      }
+      
+      // Skip status messages (broadcasts)
+      if (remoteJid === 'status@broadcast') {
+        console.log('Skipping status broadcast message');
+        continue;
+      }
+      
+      // Extract message content
+      let content = '';
+      const messageData = message.message || message;
+      
+      if (messageData.conversation) {
+        content = messageData.conversation;
+      } else if (messageData.extendedTextMessage?.text) {
+        content = messageData.extendedTextMessage.text;
+      } else if (messageData.imageMessage?.caption) {
+        content = '[Imagem] ' + (messageData.imageMessage.caption || '');
+      } else if (messageData.videoMessage?.caption) {
+        content = '[Vídeo] ' + (messageData.videoMessage.caption || '');
+      } else if (messageData.audioMessage) {
+        content = '[Áudio]';
+      } else if (messageData.documentMessage?.fileName) {
+        content = '[Documento] ' + messageData.documentMessage.fileName;
+      } else if (messageData.stickerMessage) {
+        content = '[Sticker]';
+      } else if (messageData.contactMessage) {
+        content = '[Contato]';
+      } else if (messageData.locationMessage) {
+        content = '[Localização]';
+      } else {
+        content = '[Mensagem]';
+      }
+      
+      // Extract contact info
+      const pushName = message.pushName || message.verifiedBizName || null;
+      const contactPhone = remoteJid.split('@')[0];
+      
+      console.log(`Processing message from ${remoteJid} (${pushName}): ${content.substring(0, 50)}...`);
+      
+      // Find or create conversation
+      const { data: existingConversation, error: findError } = await supabase
+        .from('whatsapp_conversations')
+        .select('*')
+        .eq('agent_id', instance.agent_id)
+        .eq('remote_jid', remoteJid)
+        .maybeSingle();
+      
+      if (findError) {
+        console.error('Error finding conversation:', findError);
+        continue;
+      }
+      
+      let conversationId: string;
+      
+      if (existingConversation) {
+        // Update existing conversation
+        conversationId = existingConversation.id;
+        
+        const updateData: any = {
+          last_message: content,
+          last_message_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        // Update contact name if we have it and it's different
+        if (pushName && pushName !== existingConversation.contact_name) {
+          updateData.contact_name = pushName;
+        }
+        
+        // Increment unread count if message is not from me
+        if (!isFromMe) {
+          updateData.unread_count = (existingConversation.unread_count || 0) + 1;
+        }
+        
+        await supabase
+          .from('whatsapp_conversations')
+          .update(updateData)
+          .eq('id', conversationId);
+        
+        console.log('Updated conversation:', conversationId);
+      } else {
+        // Create new conversation
+        const { data: newConversation, error: createError } = await supabase
+          .from('whatsapp_conversations')
+          .insert({
+            agent_id: instance.agent_id,
+            remote_jid: remoteJid,
+            contact_name: pushName,
+            contact_phone: contactPhone,
+            last_message: content,
+            last_message_at: new Date().toISOString(),
+            unread_count: isFromMe ? 0 : 1,
+            agent_enabled: true,
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('Error creating conversation:', createError);
+          continue;
+        }
+        
+        conversationId = newConversation.id;
+        console.log('Created new conversation:', conversationId);
+      }
+      
+      // Save the message
+      const { error: messageError } = await supabase
+        .from('whatsapp_messages')
+        .insert({
+          conversation_id: conversationId,
+          message_id: messageId,
+          content: content,
+          is_from_me: isFromMe,
+          message_type: 'text',
+        });
+      
+      if (messageError) {
+        console.error('Error saving message:', messageError);
+      } else {
+        console.log('Message saved successfully');
+      }
+    }
+  } catch (error) {
+    console.error('Error in saveMessageToDatabase:', error);
+  }
+}
+
 async function forwardMessageToN8N(instance: any, payload: any) {
   try {
     console.log('Forwarding message to n8n webhook...');
     console.log('Instance:', instance.instance_name);
-    console.log('Payload:', JSON.stringify(payload));
     
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
       method: 'POST',
