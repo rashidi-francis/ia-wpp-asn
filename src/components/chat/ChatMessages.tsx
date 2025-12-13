@@ -94,41 +94,40 @@ export const ChatMessages = ({
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between">
+      <header className="border-b border-border bg-card px-4 py-3">
         <div className="flex items-center gap-3">
           {showBackButton && (
             <Button variant="ghost" size="icon" onClick={onBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div>
+          <div className="flex-1">
             <h2 className="font-semibold">{getContactDisplay()}</h2>
             <p className="text-xs text-muted-foreground">{agentName}</p>
+            {/* Agent toggle - below name */}
+            <button
+              onClick={() => onToggleAgent(conversation.id, !conversation.agent_enabled)}
+              className={cn(
+                "flex items-center gap-1.5 mt-1 text-xs font-medium transition-colors",
+                conversation.agent_enabled
+                  ? "text-green-600 hover:text-green-700"
+                  : "text-red-500 hover:text-red-600"
+              )}
+            >
+              {conversation.agent_enabled ? (
+                <>
+                  <Plug className="h-3.5 w-3.5" />
+                  <span>O Agente está Ligado</span>
+                </>
+              ) : (
+                <>
+                  <Unplug className="h-3.5 w-3.5" />
+                  <span>O Agente está Desligado</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-
-        {/* Agent toggle */}
-        <button
-          onClick={() => onToggleAgent(conversation.id, !conversation.agent_enabled)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-            conversation.agent_enabled
-              ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-              : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
-          )}
-        >
-          {conversation.agent_enabled ? (
-            <>
-              <Plug className="h-4 w-4" />
-              <span>O Agente está Ligado</span>
-            </>
-          ) : (
-            <>
-              <Unplug className="h-4 w-4" />
-              <span>O Agente está Desligado</span>
-            </>
-          )}
-        </button>
       </header>
 
       {/* Messages area */}
