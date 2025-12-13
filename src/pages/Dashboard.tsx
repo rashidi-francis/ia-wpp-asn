@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
@@ -434,6 +434,12 @@ const Dashboard = () => {
                           >
                             <FileText className="mr-2 h-4 w-4" />
                             Configurações
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/agent/${agent.id}/chats`)}
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Chat
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => initiateDelete(agent)}
