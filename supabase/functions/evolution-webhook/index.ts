@@ -61,10 +61,14 @@ serve(async (req) => {
         break;
       case 'messages.upsert':
         console.log('Message received for instance:', instance);
-        // Save message to database
-        await saveMessageToDatabase(supabase, whatsappInstance, data);
-        // Forward to n8n
-        await forwardMessageToN8N(whatsappInstance, payload);
+        // Save message to database and get conversation info
+        const conversationInfo = await saveMessageToDatabase(supabase, whatsappInstance, data);
+        // Only forward to n8n if agent is enabled for this conversation and message is from user
+        if (conversationInfo?.shouldForward && conversationInfo?.agentEnabled) {
+          await forwardMessageToN8N(whatsappInstance, payload);
+        } else if (conversationInfo?.shouldForward && !conversationInfo?.agentEnabled) {
+          console.log('Agent is disabled for this conversation, not forwarding to n8n');
+        }
         break;
       default:
         console.log('Unhandled event:', event);
@@ -162,10 +166,11 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
   }
 }
 
-async function saveMessageToDatabase(supabase: any, instance: any, data: any) {
+async function saveMessageToDatabase(supabase: any, instance: any, data: any): Promise<{ shouldForward: boolean; agentEnabled: boolean } | null> {
   try {
     // Evolution API can send messages in different formats
     const messages = data.messages || [data];
+    let result: { shouldForward: boolean; agentEnabled: boolean } | null = null;
     
     for (const message of messages) {
       const key = message.key || {};
@@ -299,9 +304,25 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any) {
       } else {
         console.log('Message saved successfully');
       }
+      
+      // Get agent_enabled status for this conversation
+      const { data: convData } = await supabase
+        .from('whatsapp_conversations')
+        .select('agent_enabled')
+        .eq('id', conversationId)
+        .single();
+      
+      // Only forward if message is from user (not from agent/me)
+      result = {
+        shouldForward: !isFromMe,
+        agentEnabled: convData?.agent_enabled ?? true
+      };
     }
+    
+    return result;
   } catch (error) {
     console.error('Error in saveMessageToDatabase:', error);
+    return null;
   }
 }
 
