@@ -65,7 +65,7 @@ serve(async (req) => {
         const conversationInfo = await saveMessageToDatabase(supabase, whatsappInstance, data);
         // Only forward to n8n if agent is enabled for this conversation and message is from user
         if (conversationInfo?.shouldForward && conversationInfo?.agentEnabled) {
-          await forwardMessageToN8N(whatsappInstance, payload);
+          await forwardMessageToN8N(supabase, whatsappInstance, payload);
         } else if (conversationInfo?.shouldForward && !conversationInfo?.agentEnabled) {
           console.log('Agent is disabled for this conversation, not forwarding to n8n');
         }
@@ -326,10 +326,93 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
   }
 }
 
-async function forwardMessageToN8N(instance: any, payload: any) {
+// Build concatenated prompt from all agent instruction fields
+function buildSystemMessage(agent: any): string {
+  const sections: string[] = [];
+
+  if (agent.nome) {
+    sections.push(`## Nome do Agente\n${agent.nome}`);
+  }
+
+  if (agent.quem_eh) {
+    sections.push(`## Quem é o Agente\n${agent.quem_eh}`);
+  }
+
+  if (agent.o_que_faz) {
+    sections.push(`## O que o Agente Faz\n${agent.o_que_faz}`);
+  }
+
+  if (agent.objetivo) {
+    sections.push(`## Objetivo do Agente\n${agent.objetivo}`);
+  }
+
+  if (agent.como_deve_responder) {
+    sections.push(`## Como Deve Responder\n${agent.como_deve_responder}`);
+  }
+
+  if (agent.instrucoes_agente) {
+    sections.push(`## Instruções do Agente\n${agent.instrucoes_agente}`);
+  }
+
+  if (agent.topicos_evitar) {
+    sections.push(`## Tópicos a Evitar\n${agent.topicos_evitar}`);
+  }
+
+  if (agent.palavras_evitar) {
+    sections.push(`## Palavras a Evitar\n${agent.palavras_evitar}`);
+  }
+
+  if (agent.links_permitidos) {
+    sections.push(`## Links Permitidos\n${agent.links_permitidos}`);
+  }
+
+  if (agent.regras_personalizadas) {
+    sections.push(`## Regras Personalizadas\n${agent.regras_personalizadas}`);
+  }
+
+  if (agent.resposta_padrao_erro) {
+    sections.push(`## Resposta Padrão de Erro\n${agent.resposta_padrao_erro}`);
+  }
+
+  if (agent.resposta_secundaria_erro) {
+    sections.push(`## Resposta Secundária de Erro\n${agent.resposta_secundaria_erro}`);
+  }
+
+  return sections.join('\n\n');
+}
+
+async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
   try {
     console.log('Forwarding message to n8n webhook...');
     console.log('Instance:', instance.instance_name);
+    
+    // Fetch agent data to get the prompt
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', instance.agent_id)
+      .single();
+    
+    if (agentError) {
+      console.error('Error fetching agent for prompt:', agentError);
+    }
+    
+    // Build the concatenated prompt from all agent instruction fields
+    const prompt = agent ? buildSystemMessage(agent) : '';
+    
+    console.log('Prompt length:', prompt.length);
+    
+    // Extract the message text from payload
+    const messages = payload.data?.messages || [payload.data];
+    let messageText = '';
+    for (const message of messages) {
+      const messageData = message.message || message;
+      if (messageData.conversation) {
+        messageText = messageData.conversation;
+      } else if (messageData.extendedTextMessage?.text) {
+        messageText = messageData.extendedTextMessage.text;
+      }
+    }
     
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
       method: 'POST',
@@ -339,7 +422,11 @@ async function forwardMessageToN8N(instance: any, payload: any) {
       body: JSON.stringify({
         ...payload,
         instance_name: instance.instance_name,
+        instance_id: instance.id,
         agent_id: instance.agent_id,
+        phone_number: instance.phone_number,
+        message: messageText,
+        prompt: prompt,
       }),
     });
 
@@ -347,7 +434,7 @@ async function forwardMessageToN8N(instance: any, payload: any) {
       const errorText = await response.text();
       console.error('n8n webhook error:', response.status, errorText);
     } else {
-      console.log('Message forwarded to n8n successfully');
+      console.log('Message forwarded to n8n successfully with prompt');
     }
   } catch (error) {
     console.error('Error forwarding message to n8n:', error);
