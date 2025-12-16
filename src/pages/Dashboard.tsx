@@ -69,6 +69,7 @@ const Dashboard = () => {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [planLimits, setPlanLimits] = useState<PlanLimits>({ max_agents: 0, max_team_members: 0 });
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -138,12 +139,7 @@ const Dashboard = () => {
 
     // Check if user has reached agent limit
     if (agents.length >= planLimits.max_agents) {
-      toast({
-        variant: "destructive",
-        title: "Limite de agentes atingido",
-        description: `Seu plano ${profile?.plano} permite até ${planLimits.max_agents} agentes. Faça upgrade para criar mais.`,
-      });
-      setPlanDialogOpen(true);
+      setLimitDialogOpen(true);
       return;
     }
 
@@ -389,7 +385,6 @@ const Dashboard = () => {
                 <Button 
                   onClick={handleCreateAgent} 
                   className="shadow-lg hover:shadow-glow transition-all duration-300"
-                  disabled={agents.length >= planLimits.max_agents}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Novo Agente
@@ -527,6 +522,72 @@ const Dashboard = () => {
             >
               Sim, excluir Agente {agentToDelete?.nome || "Sem nome"}{" "}
               permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de limite de agentes atingido */}
+      <AlertDialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-xl">
+              🔒 Limite de Agentes Atingido
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <p>
+                  O limite de agentes do <strong>{profile?.plano}</strong> já foi atingido.
+                </p>
+                <p>
+                  Para criar novos agentes, aceda a:<br />
+                  <strong>Minha Conta &gt; Meu Plano</strong><br />
+                  {profile?.plano === "Empresarial" ? (
+                    <>
+                      escolha o plano: <strong>"Agency Boss"</strong> que é um plano flexível sob demanda, lá mesmo tem um botão "Fale com a nossa equipa" para que consigamos explorar algo personalizado para a tua procura.
+                    </>
+                  ) : (
+                    <>
+                      e efectue o upgrade para um dos planos disponíveis:
+                    </>
+                  )}
+                </p>
+                {profile?.plano !== "Empresarial" && (
+                  <ul className="list-disc list-inside space-y-1">
+                    {profile?.plano === "Básico" && (
+                      <>
+                        <li><strong>Plano Avançado</strong> – até 3 agentes</li>
+                        <li><strong>Plano Empresarial</strong> – até 6 agentes</li>
+                      </>
+                    )}
+                    {profile?.plano === "Avançado" && (
+                      <li><strong>Plano Empresarial</strong> – até 6 agentes</li>
+                    )}
+                    {profile?.plano === "Plano Teste Grátis" && (
+                      <>
+                        <li><strong>Plano Básico</strong> – até 1 agente</li>
+                        <li><strong>Plano Avançado</strong> – até 3 agentes</li>
+                        <li><strong>Plano Empresarial</strong> – até 6 agentes</li>
+                      </>
+                    )}
+                  </ul>
+                )}
+                <p className="font-medium text-foreground">
+                  Faça o upgrade e continue a expandir os seus agentes sem interrupções.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setLimitDialogOpen(false);
+                setPlanDialogOpen(true);
+              }}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Fazer Upgrade Agora
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
