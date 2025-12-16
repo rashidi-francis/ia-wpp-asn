@@ -12,8 +12,8 @@ import type { Session } from "@supabase/supabase-js";
 import emailjs from '@emailjs/browser';
 import { Footer } from "@/components/Footer";
 import { TrialExpiredDialog } from "@/components/TrialExpiredDialog";
+import { PlanExpiredDialog } from "@/components/PlanExpiredDialog";
 import WhatsAppConnection from "@/components/WhatsAppConnection";
-
 interface Agent {
   id: string;
   user_id: string;
@@ -42,6 +42,10 @@ const Agent = () => {
   const [saving, setSaving] = useState(false);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [showTrialExpired, setShowTrialExpired] = useState(false);
+  const [showPlanExpired, setShowPlanExpired] = useState(false);
+  const [showPlanWarning, setShowPlanWarning] = useState(false);
+  const [currentPlanName, setCurrentPlanName] = useState("");
+  const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
   const [nome, setNome] = useState("");
   const [quemEh, setQuemEh] = useState("");
   const [oQueFaz, setOQueFaz] = useState("");
@@ -82,14 +86,16 @@ const Agent = () => {
     if (!session?.user || !id) return;
 
     try {
-      // Verificar o plano do usuário e data de criação
+      // Verificar o plano do usuário e data de criação/expiração
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("plano, created_at")
+        .select("plano, created_at, plan_expires_at")
         .eq("id", session.user.id)
         .single();
 
       if (profileError) throw profileError;
+
+      setCurrentPlanName(profileData.plano);
 
       // Verificar se o plano expirou (Plano Teste Grátis + mais de 3 dias)
       if (profileData.plano === "Plano Teste Grátis") {
@@ -101,6 +107,23 @@ const Agent = () => {
           setShowTrialExpired(true);
           setLoading(false);
           return;
+        }
+      } else if (profileData.plan_expires_at) {
+        // Verificar expiração de planos pagos
+        const expiresAt = new Date(profileData.plan_expires_at);
+        const now = new Date();
+        const diffInDays = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        setDaysUntilExpiration(diffInDays);
+        
+        if (diffInDays <= 0) {
+          // Plano expirou
+          setShowPlanExpired(true);
+          setLoading(false);
+          return;
+        } else if (diffInDays <= 7) {
+          // Aviso de expiração próxima (não bloqueia, apenas avisa)
+          setShowPlanWarning(true);
         }
       }
 
@@ -472,6 +495,17 @@ const Agent = () => {
         <WhatsAppConnection agentId={id!} agentName={nome || "Agente"} />
       </main>
       <TrialExpiredDialog open={showTrialExpired} onOpenChange={setShowTrialExpired} />
+      <PlanExpiredDialog 
+        open={showPlanExpired} 
+        onOpenChange={setShowPlanExpired} 
+        planName={currentPlanName}
+      />
+      <PlanExpiredDialog 
+        open={showPlanWarning} 
+        onOpenChange={setShowPlanWarning} 
+        planName={currentPlanName}
+        daysUntilExpiration={daysUntilExpiration}
+      />
       <Footer />
     </div>
   );
