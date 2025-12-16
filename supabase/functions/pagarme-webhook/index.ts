@@ -104,6 +104,15 @@ serve(async (req) => {
       });
     }
 
+    // Calculate expiration date based on billing type
+    const now = new Date();
+    let expiresAt: Date;
+    if (planInfo.billingType === 'annual') {
+      expiresAt = new Date(now.setFullYear(now.getFullYear() + 1));
+    } else {
+      expiresAt = new Date(now.setMonth(now.getMonth() + 1));
+    }
+
     // Create payment record
     const { error: paymentError } = await supabase
       .from('payments')
@@ -125,10 +134,13 @@ serve(async (req) => {
       });
     }
 
-    // Update user's plan
+    // Update user's plan and expiration date
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ plano: planInfo.name })
+      .update({ 
+        plano: planInfo.name,
+        plan_expires_at: expiresAt.toISOString()
+      })
       .eq('id', profile.id);
 
     if (updateError) {

@@ -125,6 +125,7 @@ export type Database = {
           email: string
           id: string
           nome: string
+          plan_expires_at: string | null
           plano: Database["public"]["Enums"]["plan_type"]
           updated_at: string
         }
@@ -134,6 +135,7 @@ export type Database = {
           email: string
           id: string
           nome: string
+          plan_expires_at?: string | null
           plano?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
         }
@@ -143,6 +145,7 @@ export type Database = {
           email?: string
           id?: string
           nome?: string
+          plan_expires_at?: string | null
           plano?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
         }
