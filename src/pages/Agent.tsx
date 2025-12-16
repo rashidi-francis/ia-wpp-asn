@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { Footer } from "@/components/Footer";
 import { TrialExpiredDialog } from "@/components/TrialExpiredDialog";
 import { PlanExpiredDialog } from "@/components/PlanExpiredDialog";
 import WhatsAppConnection from "@/components/WhatsAppConnection";
+import { useDraftAutosave } from "@/hooks/use-draft-autosave";
+
 interface Agent {
   id: string;
   user_id: string;
@@ -58,6 +60,43 @@ const Agent = () => {
   const [regrasPersonalizadas, setRegrasPersonalizadas] = useState("");
   const [respostaPadraoErro, setRespostaPadraoErro] = useState("");
   const [respostaSecundariaErro, setRespostaSecundariaErro] = useState("");
+
+  // Auto-save draft data
+  const draftData = useMemo(() => ({
+    nome,
+    quemEh,
+    oQueFaz,
+    objetivo,
+    comoDeveResponder,
+    instrucoesAgente,
+    topicosEvitar,
+    palavrasEvitar,
+    linksPermitidos,
+    regrasPersonalizadas,
+    respostaPadraoErro,
+    respostaSecundariaErro,
+  }), [nome, quemEh, oQueFaz, objetivo, comoDeveResponder, instrucoesAgente, topicosEvitar, palavrasEvitar, linksPermitidos, regrasPersonalizadas, respostaPadraoErro, respostaSecundariaErro]);
+
+  const draftSetters = useMemo(() => ({
+    nome: setNome,
+    quemEh: setQuemEh,
+    oQueFaz: setOQueFaz,
+    objetivo: setObjetivo,
+    comoDeveResponder: setComoDeveResponder,
+    instrucoesAgente: setInstrucoesAgente,
+    topicosEvitar: setTopicosEvitar,
+    palavrasEvitar: setPalavrasEvitar,
+    linksPermitidos: setLinksPermitidos,
+    regrasPersonalizadas: setRegrasPersonalizadas,
+    respostaPadraoErro: setRespostaPadraoErro,
+    respostaSecundariaErro: setRespostaSecundariaErro,
+  }), []);
+
+  const { clearDraft } = useDraftAutosave({
+    key: `agent-draft-${id}`,
+    data: draftData,
+    setters: draftSetters,
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -224,6 +263,9 @@ const Agent = () => {
         'template_kms9cib',
         templateParams
       );
+
+      // Clear draft after successful save
+      clearDraft();
 
       toast({
         title: "Instruções salvas com sucesso",
