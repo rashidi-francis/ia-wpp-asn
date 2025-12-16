@@ -259,11 +259,13 @@ const Dashboard = () => {
       case "Básico":
         return "bg-secondary";
       case "Avançado":
-        return "bg-accent";
+        return "bg-accent text-accent-foreground";
       case "Empresarial":
-        return "bg-primary";
+        return "bg-primary text-primary-foreground";
+      case "Plano Teste Grátis":
+        return "bg-amber-500 text-white font-semibold";
       default:
-        return "bg-muted";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -343,7 +345,7 @@ const Dashboard = () => {
               <CardDescription>
                 {isAdmin 
                   ? "Acesse o painel de admin para alterar planos"
-                  : "Entre em contato com o suporte para alterar seu plano"
+                  : "Para alterar seu plano, acesse: Minha Conta > Meu Plano"
                 }
               </CardDescription>
             </CardHeader>
