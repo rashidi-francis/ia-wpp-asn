@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import {
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { PlanDialog } from "@/components/PlanDialog";
 import { TeamDialog } from "@/components/TeamDialog";
+import { PlanExpiredDialog } from "@/components/PlanExpiredDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ interface Profile {
   email: string;
   plano: string;
   created_at: string;
+  plan_expires_at: string | null;
 }
 
 interface PlanLimits {
@@ -70,7 +72,8 @@ const Dashboard = () => {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [planLimits, setPlanLimits] = useState<PlanLimits>({ max_agents: 0, max_team_members: 0 });
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
-
+  const [planExpirationWarningOpen, setPlanExpirationWarningOpen] = useState(false);
+  const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -110,6 +113,19 @@ const Dashboard = () => {
       setProfile(profileResult.data);
       setAgents(agentsResult.data || []);
       setIsAdmin(!!roleResult.data);
+
+      // Check plan expiration for paid plans
+      if (profileResult.data.plan_expires_at && profileResult.data.plano !== "Plano Teste Grátis") {
+        const expiresAt = new Date(profileResult.data.plan_expires_at);
+        const now = new Date();
+        const diffInDays = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        setDaysUntilExpiration(diffInDays);
+        
+        // Show warning if expiring within 7 days
+        if (diffInDays <= 7 && diffInDays > 0) {
+          setPlanExpirationWarningOpen(true);
+        }
+      }
 
       // Get plan limits
       const { data: limitsData } = await supabase
@@ -349,10 +365,36 @@ const Dashboard = () => {
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <Badge className={`${getPlanColor(profile?.plano || "Básico")} text-lg px-4 py-2`}>
                 {profile?.plano || "Básico"}
               </Badge>
+              
+              {/* Expiration info for paid plans */}
+              {profile?.plan_expires_at && profile?.plano !== "Plano Teste Grátis" && (
+                <div className={`flex items-center gap-2 text-sm ${
+                  daysUntilExpiration !== undefined && daysUntilExpiration <= 7 
+                    ? daysUntilExpiration <= 0 
+                      ? 'text-destructive' 
+                      : 'text-yellow-600'
+                    : 'text-muted-foreground'
+                }`}>
+                  {daysUntilExpiration !== undefined && daysUntilExpiration <= 0 ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <Clock className="h-4 w-4" />
+                  )}
+                  <span>
+                    {daysUntilExpiration !== undefined && daysUntilExpiration <= 0 
+                      ? 'Plano expirado - Renove agora'
+                      : `Expira em ${new Date(profile.plan_expires_at).toLocaleDateString('pt-BR')}`
+                    }
+                    {daysUntilExpiration !== undefined && daysUntilExpiration > 0 && daysUntilExpiration <= 7 && (
+                      <span className="font-semibold"> ({daysUntilExpiration} {daysUntilExpiration === 1 ? 'dia' : 'dias'})</span>
+                    )}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -611,6 +653,13 @@ const Dashboard = () => {
       <TeamDialog
         open={teamDialogOpen}
         onOpenChange={setTeamDialogOpen}
+      />
+
+      <PlanExpiredDialog
+        open={planExpirationWarningOpen}
+        onOpenChange={setPlanExpirationWarningOpen}
+        planName={profile?.plano || ""}
+        daysUntilExpiration={daysUntilExpiration}
       />
       <Footer />
     </div>
