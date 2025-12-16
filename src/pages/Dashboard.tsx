@@ -540,15 +540,15 @@ const Dashboard = () => {
                   O limite de agentes do <strong>{profile?.plano}</strong> já foi atingido.
                 </p>
                 <p>
-                  Para criar novos agentes, aceda a:<br />
+                  Para criar novos agentes, acesse:<br />
                   <strong>Minha Conta &gt; Meu Plano</strong><br />
                   {profile?.plano === "Empresarial" ? (
                     <>
-                      escolha o plano: <strong>"Agency Boss"</strong> que é um plano flexível sob demanda, lá mesmo tem um botão "Fale com a nossa equipa" para que consigamos explorar algo personalizado para a tua procura.
+                      escolha o plano: <strong>"Agency Boss"</strong> que é um plano flexível sob demanda, lá mesmo tem um botão "Fale com a nossa equipe" para que possamos explorar algo personalizado para a sua demanda.
                     </>
                   ) : (
                     <>
-                      e efectue o upgrade para um dos planos disponíveis:
+                      e faça o upgrade para um dos planos disponíveis:
                     </>
                   )}
                 </p>
@@ -573,7 +573,7 @@ const Dashboard = () => {
                   </ul>
                 )}
                 <p className="font-medium text-foreground">
-                  Faça o upgrade e continue a expandir os seus agentes sem interrupções.
+                  Faça o upgrade e continue expandindo seus agentes sem interrupções.
                 </p>
               </div>
             </AlertDialogDescription>
