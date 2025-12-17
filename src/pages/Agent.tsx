@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -363,12 +363,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Descreva identidade e principais características, personalidade do Agente, etc.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="quem-eh"
                 placeholder="Descreva quem é seu agente..."
                 value={quemEh}
                 onChange={(e) => setQuemEh(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -379,12 +379,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina o papel principal do seu Agente. Como ele deve se comportar, quais são suas responsabilidades, etc.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="o-que-faz"
                 placeholder="Explique as atividades e funções que seu agente desempenha..."
                 value={oQueFaz}
                 onChange={(e) => setOQueFaz(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -395,12 +395,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Especifique o objetivo final do seu Agente nesta interação. Isso ajuda o Agente a se concentrar em ações específicas para alcançar esse objetivo.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="objetivo"
                 placeholder="Defina os objetivos principais e metas do seu agente..."
                 value={objetivo}
                 onChange={(e) => setObjetivo(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -411,12 +411,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina o tom e o estilo das respostas do seu Agente. Isso ajuda o Agente a entender como se comunicar de forma eficaz.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="como-deve-responder"
                 placeholder="Defina o tom e estilo de comunicação..."
                 value={comoDeveResponder}
                 onChange={(e) => setComoDeveResponder(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
           </CardContent>
@@ -434,12 +434,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina as principais responsabilidades e ações que o seu Agente deve executar. Isso ajuda o Agente a compreender seu papel e a realizar suas tarefas de forma eficaz.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="instrucoes-agente"
                 placeholder="Digite as instruções principais..."
                 value={instrucoesAgente}
                 onChange={(e) => setInstrucoesAgente(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -450,12 +450,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina os tópicos que o seu Agente deve evitar. Isso ajuda o Agente a entender sobre o que ele não deve falar.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="topicos-evitar"
                 placeholder="Liste os tópicos que devem ser evitados..."
                 value={topicosEvitar}
                 onChange={(e) => setTopicosEvitar(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -466,12 +466,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina as palavras que o seu Agente deve evitar. Isso ajuda o Agente a entender o que ele não deve dizer.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="palavras-evitar"
                 placeholder="Liste as palavras que devem ser evitadas..."
                 value={palavrasEvitar}
                 onChange={(e) => setPalavrasEvitar(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -482,12 +482,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina os links que o seu Agente pode usar. Isso ajuda o Agente a entender quais links ele pode utilizar.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="links-permitidos"
                 placeholder="Liste os links permitidos..."
                 value={linksPermitidos}
                 onChange={(e) => setLinksPermitidos(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -498,12 +498,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Defina regras adicionais para o seu Agente. Isso ajuda o Agente a entender o que ele deve fazer.
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="regras-personalizadas"
                 placeholder="Digite regras personalizadas..."
                 value={regrasPersonalizadas}
                 onChange={(e) => setRegrasPersonalizadas(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
           </CardContent>
@@ -525,12 +525,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Deixe em branco caso não tenha
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="resposta-padrao-erro"
                 placeholder="Digite a resposta padrão de erro..."
                 value={respostaPadraoErro}
                 onChange={(e) => setRespostaPadraoErro(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
 
@@ -541,12 +541,12 @@ const Agent = () => {
               <p className="text-sm text-muted-foreground italic">
                 Deixe em branco caso não tenha
               </p>
-              <Textarea
+              <AutoResizeTextarea
                 id="resposta-secundaria-erro"
                 placeholder="Digite a resposta secundária de erro..."
                 value={respostaSecundariaErro}
                 onChange={(e) => setRespostaSecundariaErro(e.target.value)}
-                className="min-h-[120px] resize-y"
+                className="min-h-[80px]"
               />
             </div>
           </CardContent>
