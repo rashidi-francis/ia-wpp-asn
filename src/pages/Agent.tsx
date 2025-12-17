@@ -554,11 +554,12 @@ const Agent = () => {
 
         <WhatsAppConnection agentId={id!} agentName={nome || "Agente"} />
       </main>
-      <TrialExpiredDialog open={showTrialExpired} onOpenChange={setShowTrialExpired} />
+      <TrialExpiredDialog open={showTrialExpired} onOpenChange={setShowTrialExpired} agentId={id} />
       <PlanExpiredDialog 
         open={showPlanExpired} 
         onOpenChange={setShowPlanExpired} 
         planName={currentPlanName}
+        agentId={id}
       />
       <PlanExpiredDialog 
         open={showPlanWarning} 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,31 +8,61 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, CreditCard } from "lucide-react";
+import { AlertCircle, Clock, CreditCard, Zap } from "lucide-react";
 import { PlanDialog } from "@/components/PlanDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlanExpiredDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   planName: string;
-  daysUntilExpiration?: number; // If provided, shows warning instead of expired
+  daysUntilExpiration?: number;
+  agentId?: string;
 }
 
 export const PlanExpiredDialog = ({ 
   open, 
   onOpenChange, 
   planName,
-  daysUntilExpiration 
+  daysUntilExpiration,
+  agentId
 }: PlanExpiredDialogProps) => {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+
+  const isExpired = daysUntilExpiration === undefined || daysUntilExpiration <= 0;
+  const isWarning = !isExpired && daysUntilExpiration !== undefined && daysUntilExpiration <= 7;
+
+  // Disconnect WhatsApp when plan expires
+  useEffect(() => {
+    if (open && isExpired && agentId) {
+      disconnectWhatsApp(agentId);
+    }
+  }, [open, isExpired, agentId]);
+
+  const disconnectWhatsApp = async (agentId: string) => {
+    try {
+      const { data: instance } = await supabase
+        .from('whatsapp_instances')
+        .select('instance_name, status')
+        .eq('agent_id', agentId)
+        .eq('status', 'connected')
+        .maybeSingle();
+
+      if (instance) {
+        console.log('Disconnecting WhatsApp due to expired plan:', instance.instance_name);
+        await supabase.functions.invoke('evolution-api', {
+          body: { action: 'disconnect', agentId }
+        });
+      }
+    } catch (error) {
+      console.error('Error disconnecting WhatsApp:', error);
+    }
+  };
 
   const handleRenew = () => {
     onOpenChange(false);
     setPlanDialogOpen(true);
   };
-
-  const isExpired = daysUntilExpiration === undefined || daysUntilExpiration <= 0;
-  const isWarning = !isExpired && daysUntilExpiration !== undefined && daysUntilExpiration <= 7;
 
   return (
     <>
@@ -66,7 +96,7 @@ export const PlanExpiredDialog = ({
             <CreditCard className="h-5 w-5 text-muted-foreground" />
             <div className="text-sm text-muted-foreground">
               {isExpired 
-                ? "Seus agentes estão desativados até a renovação do plano."
+                ? "Seus agentes estão desativados e o WhatsApp foi desconectado até a renovação do plano."
                 : "Renove para garantir acesso contínuo aos seus agentes."
               }
             </div>
@@ -79,6 +109,7 @@ export const PlanExpiredDialog = ({
               </Button>
             )}
             <Button onClick={handleRenew} className="w-full sm:w-auto">
+              <Zap className="mr-2 h-4 w-4" />
               {isExpired ? "Renovar Plano" : "Renovar Agora"}
             </Button>
           </DialogFooter>
