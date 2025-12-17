@@ -176,18 +176,36 @@ const Agent = () => {
       if (error) throw error;
 
       setAgent(data);
-      setNome(data.nome || "");
-      setQuemEh(data.quem_eh || "");
-      setOQueFaz(data.o_que_faz || "");
-      setObjetivo(data.objetivo || "");
-      setComoDeveResponder(data.como_deve_responder || "");
-      setInstrucoesAgente(data.instrucoes_agente || "");
-      setTopicosEvitar(data.topicos_evitar || "");
-      setPalavrasEvitar(data.palavras_evitar || "");
-      setLinksPermitidos(data.links_permitidos || "");
-      setRegrasPersonalizadas(data.regras_personalizadas || "");
-      setRespostaPadraoErro(data.resposta_padrao_erro || "");
-      setRespostaSecundariaErro(data.resposta_secundaria_erro || "");
+
+      // Se existir rascunho local com conteúdo, NÃO sobrescreva com valores do banco
+      // (isso evita perder texto ao voltar pra aba e o loadAgent rodar novamente)
+      let hasDraftContent = false;
+      try {
+        const savedDraft = localStorage.getItem(`agent-draft-${id}`);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft) as Record<string, string>;
+          hasDraftContent = Object.values(parsed).some(
+            (v) => typeof v === "string" && v.trim() !== ""
+          );
+        }
+      } catch {
+        // ignore
+      }
+
+      if (!hasDraftContent) {
+        setNome(data.nome || "");
+        setQuemEh(data.quem_eh || "");
+        setOQueFaz(data.o_que_faz || "");
+        setObjetivo(data.objetivo || "");
+        setComoDeveResponder(data.como_deve_responder || "");
+        setInstrucoesAgente(data.instrucoes_agente || "");
+        setTopicosEvitar(data.topicos_evitar || "");
+        setPalavrasEvitar(data.palavras_evitar || "");
+        setLinksPermitidos(data.links_permitidos || "");
+        setRegrasPersonalizadas(data.regras_personalizadas || "");
+        setRespostaPadraoErro(data.resposta_padrao_erro || "");
+        setRespostaSecundariaErro(data.resposta_secundaria_erro || "");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
