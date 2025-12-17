@@ -21,9 +21,27 @@ export const useDraftAutosave = ({
   debounceMs = 1500,
 }: UseDraftAutosaveOptions) => {
   const { toast } = useToast();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredRef = useRef(false);
   const initialDataRef = useRef<DraftData | null>(null);
+  const dataRef = useRef<DraftData>(data);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  const writeDraft = useCallback(
+    (draft: DraftData) => {
+      const hasContent = Object.values(draft).some(
+        (value) => value && value.trim() !== ""
+      );
+
+      if (hasContent) {
+        localStorage.setItem(key, JSON.stringify(draft));
+      }
+    },
+    [key]
+  );
 
   // Restore draft on mount
   useEffect(() => {
@@ -71,13 +89,9 @@ export const useDraftAutosave = ({
     }
 
     timeoutRef.current = setTimeout(() => {
-      const hasContent = Object.values(data).some(value => value && value.trim() !== '');
-      
-      if (hasContent) {
-        localStorage.setItem(key, JSON.stringify(data));
-      }
+      writeDraft(dataRef.current);
     }, debounceMs);
-  }, [key, data, debounceMs]);
+  }, [debounceMs, writeDraft]);
 
   // Save on data change
   useEffect(() => {
@@ -85,6 +99,29 @@ export const useDraftAutosave = ({
       saveDraft();
     }
   }, [data, saveDraft]);
+
+  // Flush draft immediately when user leaves the tab/window (avoids losing text before debounce)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        writeDraft(dataRef.current);
+      }
+    };
+
+    const handlePageHide = () => {
+      writeDraft(dataRef.current);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handlePageHide);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handlePageHide);
+    };
+  }, [writeDraft]);
 
   // Clear draft (call after successful save)
   const clearDraft = useCallback(() => {
