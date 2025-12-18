@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const N8N_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/5acbbf43-ed70-4111-9049-b88bca8370a9";
+const N8N_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/860F070C-FCEA-426D-88FF-774CFA36F3F0";
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 

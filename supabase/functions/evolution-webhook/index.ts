@@ -10,7 +10,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 // n8n webhook URL for forwarding WhatsApp messages
-const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/5acbbf43-ed70-4111-9049-b88bca8370a9";
+// IMPORTANT: keep this in sync with your n8n Webhook node "Production URL".
+const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/860F070C-FCEA-426D-88FF-774CFA36F3F0";
 
 serve(async (req) => {
   // Handle CORS preflight
