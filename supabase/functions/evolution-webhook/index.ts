@@ -15,7 +15,7 @@ const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 
 // n8n webhook URL for forwarding WhatsApp messages
 // IMPORTANT: keep this in sync with your n8n Webhook node "Production URL".
-const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/860F070C-FCEA-426D-88FF-774CFA36F3F0";
+const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/5ca49874-447c-46fc-9e4a-3a2bc8f98afd";
 
 serve(async (req) => {
   // Handle CORS preflight
