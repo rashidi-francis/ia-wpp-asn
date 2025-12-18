@@ -9,6 +9,10 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// Evolution API (used to send replies back to WhatsApp)
+const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
+const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+
 // n8n webhook URL for forwarding WhatsApp messages
 // IMPORTANT: keep this in sync with your n8n Webhook node "Production URL".
 const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/860F070C-FCEA-426D-88FF-774CFA36F3F0";
@@ -386,35 +390,45 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
   try {
     console.log('Forwarding message to n8n webhook...');
     console.log('Instance:', instance.instance_name);
-    
+
     // Fetch agent data to get the prompt
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('*')
       .eq('id', instance.agent_id)
       .single();
-    
+
     if (agentError) {
       console.error('Error fetching agent for prompt:', agentError);
     }
-    
+
     // Build the concatenated prompt from all agent instruction fields
     const prompt = agent ? buildSystemMessage(agent) : '';
-    
+
     console.log('Prompt length:', prompt.length);
-    
-    // Extract the message text from payload
+
+    // Extract the message text + remoteJid from payload
     const messages = payload.data?.messages || [payload.data];
     let messageText = '';
+    let remoteJid: string | null = null;
+
     for (const message of messages) {
-      const messageData = message.message || message;
-      if (messageData.conversation) {
+      const key = message?.key || {};
+      const maybeRemoteJid = key.remoteJid || message.remoteJid;
+      if (!remoteJid && typeof maybeRemoteJid === 'string') remoteJid = maybeRemoteJid;
+
+      const messageData = message?.message || message;
+      if (messageData?.conversation) {
         messageText = messageData.conversation;
-      } else if (messageData.extendedTextMessage?.text) {
+      } else if (messageData?.extendedTextMessage?.text) {
         messageText = messageData.extendedTextMessage.text;
       }
+
+      if (messageText) break;
     }
-    
+
+    const toNumber = remoteJid ? remoteJid.split('@')[0] : null;
+
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -431,13 +445,86 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       }),
     });
 
+    const raw = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('n8n webhook error:', response.status, errorText);
-    } else {
-      console.log('Message forwarded to n8n successfully with prompt');
+      console.error('n8n webhook error:', response.status, raw);
+      return;
     }
+
+    console.log('Message forwarded to n8n successfully with prompt');
+
+    // If n8n returns a reply in the HTTP response, send it back to WhatsApp via Evolution
+    // Expected response examples:
+    // - plain text: "Olá! ..."
+    // - JSON: { "reply": "Olá! ..." } or { "text": "Olá! ..." } or { "message": "Olá! ..." }
+    let replyText: string | null = null;
+    const trimmed = raw?.trim?.() ?? '';
+
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        replyText =
+          (typeof parsed?.reply === 'string' && parsed.reply) ||
+          (typeof parsed?.text === 'string' && parsed.text) ||
+          (typeof parsed?.message === 'string' && parsed.message) ||
+          null;
+      } catch {
+        // Not JSON, treat as plain text
+        replyText = trimmed;
+      }
+    }
+
+    if (!replyText) {
+      console.log('n8n did not return a reply in the HTTP response; nothing to send back.');
+      return;
+    }
+
+    if (!toNumber) {
+      console.log('Could not determine recipient number (remoteJid missing); cannot send reply.');
+      return;
+    }
+
+    await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
   } catch (error) {
     console.error('Error forwarding message to n8n:', error);
+  }
+}
+
+async function sendTextMessageToEvolution(instanceName: string, number: string, text: string) {
+  try {
+    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+      console.log('EVOLUTION_API_URL/EVOLUTION_API_KEY not configured; cannot send reply.');
+      return;
+    }
+
+    console.log(`Sending reply via Evolution API to ${number} (instance: ${instanceName})`);
+
+    const resp = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify({
+        number,
+        textMessage: { text },
+        options: {
+          presence: 'composing',
+          linkPreview: true,
+        },
+      }),
+    });
+
+    const body = await resp.text();
+
+    if (!resp.ok) {
+      console.error('Evolution sendText error:', resp.status, body);
+      return;
+    }
+
+    console.log('Reply sent successfully');
+  } catch (e) {
+    console.error('Error sending reply via Evolution API:', e);
   }
 }
