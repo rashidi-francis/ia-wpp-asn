@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
-import { Footer } from "@/components/Footer";
+import { LoginFooter } from "@/components/LoginFooter";
 import InputMask from "react-input-mask";
 import { Separator } from "@/components/ui/separator";
 
@@ -382,7 +382,7 @@ const Login = () => {
           </div>
         </div>
       </div>
-      <Footer />
+      <LoginFooter />
     </div>
   );
 };
