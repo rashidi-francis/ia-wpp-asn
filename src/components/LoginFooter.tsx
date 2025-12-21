@@ -2,13 +2,13 @@ export const LoginFooter = () => {
   return (
     <footer className="w-full py-6 relative z-10">
       <div className="container mx-auto px-4">
-        <p className="text-center text-sm text-white/90">
+        <p className="text-center text-sm text-[#003087] font-medium">
           Ao se cadastrar em nosso app você concorda com nossa{" "}
           <a
             href="https://ajudoseunegocio.com.br/politica-de-privacidade"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#FFC300] hover:underline transition-colors font-medium"
+            className="text-[#0052CC] hover:underline transition-colors font-semibold"
           >
             política de privacidade
           </a>{" "}
@@ -17,7 +17,7 @@ export const LoginFooter = () => {
             href="https://ajudoseunegocio.com.br/termos-de-uso"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#FFC300] hover:underline transition-colors font-medium"
+            className="text-[#0052CC] hover:underline transition-colors font-semibold"
           >
             termos de uso
           </a>{" "}
@@ -26,7 +26,7 @@ export const LoginFooter = () => {
             href="https://ajudoseunegocio.com.br"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#FFC300] hover:underline transition-colors font-medium"
+            className="text-[#0052CC] hover:underline transition-colors font-semibold"
           >
             ajudoseunegocio.com.br
           </a>
