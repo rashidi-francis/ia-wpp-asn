@@ -206,7 +206,7 @@ const Login = () => {
             <div className="text-center lg:text-left space-y-8 animate-fade-in">
               <div className="space-y-4">
                 <h1 className="text-5xl lg:text-6xl font-bold text-white drop-shadow-2xl leading-tight">
-                  Bem-vindo ao <span className="text-[#FFC300]">ChatASN</span>
+                  Boas vindas ao <span className="text-[#FFC300]">ChatASN</span>
                 </h1>
                 <h3 className="text-xl lg:text-2xl text-white/95 font-medium drop-shadow-lg">
                   Inteligência Artificial para Atendimento WhatsApp 24h por dia.
