@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle, HelpCircle } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import { ProfileDialog } from "@/components/ProfileDialog";
 import { PlanDialog } from "@/components/PlanDialog";
 import { TeamDialog } from "@/components/TeamDialog";
 import { PlanExpiredDialog } from "@/components/PlanExpiredDialog";
+import { SupportFAQDialog } from "@/components/SupportFAQDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +71,7 @@ const Dashboard = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false);
   const [planLimits, setPlanLimits] = useState<PlanLimits>({ max_agents: 0, max_team_members: 0 });
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const [planExpirationWarningOpen, setPlanExpirationWarningOpen] = useState(false);
@@ -329,6 +331,10 @@ const Dashboard = () => {
                 <DropdownMenuItem onClick={() => setTeamDialogOpen(true)}>
                   <Users className="mr-2 h-4 w-4" />
                   Equipes
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSupportDialogOpen(true)}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Suporte
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
@@ -660,6 +666,11 @@ const Dashboard = () => {
         onOpenChange={setPlanExpirationWarningOpen}
         planName={profile?.plano || ""}
         daysUntilExpiration={daysUntilExpiration}
+      />
+
+      <SupportFAQDialog
+        open={supportDialogOpen}
+        onOpenChange={setSupportDialogOpen}
       />
       <Footer />
     </div>
