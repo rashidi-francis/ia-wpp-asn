@@ -11,6 +11,7 @@ import { z } from "zod";
 import { LoginFooter } from "@/components/LoginFooter";
 import InputMask from "react-input-mask";
 import { Separator } from "@/components/ui/separator";
+import { generateFingerprint } from "@/lib/fingerprint";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -103,6 +104,29 @@ const Login = () => {
           return;
         }
 
+        // Anti-fraud: Check fingerprint before allowing signup
+        const fingerprint = generateFingerprint();
+        try {
+          const { data: fingerprintCheck, error: fpError } = await supabase.functions.invoke('check-fingerprint', {
+            body: { fingerprint, action: 'check' }
+          });
+
+          if (fpError) {
+            console.error('Fingerprint check error:', fpError);
+          } else if (fingerprintCheck && !fingerprintCheck.can_create) {
+            toast({
+              variant: "destructive",
+              title: "Limite atingido",
+              description: "Para garantir uma utilização justa da plataforma, o período experimental é limitado a um número máximo de contas por dispositivo. Caso necessite de mais acessos, entre em contacto com o suporte.",
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (fpCheckError) {
+          console.error('Error checking fingerprint:', fpCheckError);
+          // Continue with signup even if fingerprint check fails
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -130,6 +154,16 @@ const Login = () => {
             });
           }
         } else if (data.session) {
+          // Register fingerprint for anti-fraud
+          const fingerprint = generateFingerprint();
+          try {
+            await supabase.functions.invoke('check-fingerprint', {
+              body: { fingerprint, action: 'register', userId: data.session.user.id }
+            });
+          } catch (fpRegisterError) {
+            console.error('Error registering fingerprint:', fpRegisterError);
+          }
+          
           // Meta Pixel CompleteRegistration event (cadastro)
           if (typeof window !== 'undefined' && (window as any).fbq) {
             (window as any).fbq('track', 'CompleteRegistration', {

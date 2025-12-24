@@ -94,23 +94,36 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
   const [isAnnual, setIsAnnual] = useState(true);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   
+  // Plan hierarchy: Trial < Básico < Avançado < Empresarial
+  // Trial is special - it's always the lowest, but you can only use it once
   const planOrder = { "Plano Teste Grátis": 0, "Básico": 1, "Avançado": 2, "Empresarial": 3 };
   
   const getPlanAction = (targetPlan: string) => {
-    const currentOrder = planOrder[currentPlan as keyof typeof planOrder] || 1;
-    const targetOrder = planOrder[targetPlan as keyof typeof planOrder] || 1;
+    const currentOrder = planOrder[currentPlan as keyof typeof planOrder] ?? 0;
+    const targetOrder = planOrder[targetPlan as keyof typeof planOrder] ?? 1;
+    
+    // From trial, everything is an upgrade
+    if (currentPlan === "Plano Teste Grátis" && targetPlan !== "Plano Teste Grátis") {
+      return "upgrade";
+    }
+    
     return targetOrder > currentOrder ? "upgrade" : "downgrade";
   };
+  
+  // Check if target plan is the trial plan - never allow downgrade to trial
+  const isTrialPlan = (planName: string) => planName === "Plano Teste Grátis";
+  
+  // Check if user has ever had a paid plan (current plan is not trial)
+  const hasPaidPlan = currentPlan !== "Plano Teste Grátis";
 
   const handlePlanChange = async (targetPlan: string) => {
-    // For free trial, redirect to WhatsApp (can't pay for free)
-    if (targetPlan === "Plano Teste Grátis") {
-      const whatsappNumber = "5511930500397";
-      const action = getPlanAction(targetPlan);
-      const message = encodeURIComponent(
-        `Olá, vim da vossa plataforma de IA, gostaria fazer ${action} do meu plano atual - ${currentPlan.toLowerCase()}, para o plano ${targetPlan.toLowerCase()}.`
-      );
-      window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${message}`, "_blank");
+    // Block any attempt to go back to trial plan
+    if (isTrialPlan(targetPlan)) {
+      toast({
+        variant: "destructive",
+        title: "Não disponível",
+        description: "O período de teste gratuito só pode ser utilizado uma vez.",
+      });
       return;
     }
 
@@ -361,8 +374,8 @@ export const PlanDialog = ({ open, onOpenChange, profile }: PlanDialogProps) => 
               {/* Botão de Ação */}
               <div className="md:w-48">
                 {currentPlan !== plan.name ? (
-                  // Prevent downgrade from paid plans to free trial
-                  (planOrder[currentPlan as keyof typeof planOrder] >= 1 && plan.name === "Plano Teste Grátis") ? (
+                  // Always block access to trial plan once you've had any plan
+                  isTrialPlan(plan.name) ? (
                     <Button className="w-full" variant="outline" disabled>
                       Não disponível
                     </Button>

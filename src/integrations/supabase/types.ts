@@ -79,6 +79,27 @@ export type Database = {
           },
         ]
       }
+      device_fingerprints: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -378,6 +399,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_account_with_fingerprint: {
+        Args: { p_fingerprint: string }
+        Returns: Json
+      }
       can_create_agent: { Args: { user_id: string }; Returns: boolean }
       can_create_team_member: { Args: { user_id: string }; Returns: boolean }
       get_plan_limits: {
