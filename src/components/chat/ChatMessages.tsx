@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plug, Unplug } from "lucide-react";
+import { ArrowLeft, Plug, Unplug, Bot, User, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { ChatInput } from "./ChatInput";
 import type { Conversation, Message } from "@/pages/AgentChats";
 
 interface ChatMessagesProps {
@@ -24,6 +26,7 @@ export const ChatMessages = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadMessages();
@@ -91,6 +94,68 @@ export const ChatMessages = ({
     return conversation.contact_name || conversation.contact_phone || conversation.remote_jid.split("@")[0];
   };
 
+  // Get sender type label and icon
+  const getSenderInfo = (message: Message) => {
+    const senderType = message.sender_type || (message.is_from_me ? 'ai' : 'client');
+    
+    switch (senderType) {
+      case 'ai':
+        return {
+          label: 'IA',
+          icon: Bot,
+          bgClass: 'bg-primary text-primary-foreground',
+          alignRight: true,
+        };
+      case 'human':
+        return {
+          label: 'Atendente',
+          icon: UserCircle,
+          bgClass: 'bg-blue-500 text-white',
+          alignRight: true,
+        };
+      case 'client':
+      default:
+        return {
+          label: 'Cliente',
+          icon: User,
+          bgClass: 'bg-muted',
+          alignRight: false,
+        };
+    }
+  };
+
+  const handleSendManualMessage = async (content: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-manual-message', {
+        body: {
+          conversation_id: conversation.id,
+          content,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Mensagem enviada",
+        description: "Sua mensagem foi enviada com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error sending manual message:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar mensagem",
+        description: error.message || "Não foi possível enviar a mensagem.",
+      });
+      throw error;
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
@@ -142,39 +207,60 @@ export const ChatMessages = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex",
-                  message.is_from_me ? "justify-end" : "justify-start"
-                )}
-              >
+            {messages.map((message) => {
+              const senderInfo = getSenderInfo(message);
+              const SenderIcon = senderInfo.icon;
+              
+              return (
                 <div
+                  key={message.id}
                   className={cn(
-                    "max-w-[75%] rounded-lg px-4 py-2 shadow-sm",
-                    message.is_from_me
-                      ? "bg-primary text-primary-foreground rounded-br-none"
-                      : "bg-muted rounded-bl-none"
+                    "flex",
+                    senderInfo.alignRight ? "justify-end" : "justify-start"
                   )}
                 >
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                  <p
+                  <div
                     className={cn(
-                      "text-xs mt-1",
-                      message.is_from_me
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
+                      "max-w-[75%] rounded-lg px-4 py-2 shadow-sm",
+                      senderInfo.bgClass,
+                      senderInfo.alignRight ? "rounded-br-none" : "rounded-bl-none"
                     )}
                   >
-                    {formatTime(message.created_at)}
-                  </p>
+                    {/* Sender indicator */}
+                    <div className={cn(
+                      "flex items-center gap-1.5 mb-1 text-xs font-medium",
+                      senderInfo.alignRight 
+                        ? "text-inherit opacity-80" 
+                        : "text-muted-foreground"
+                    )}>
+                      <SenderIcon className="h-3 w-3" />
+                      <span>{senderInfo.label}</span>
+                    </div>
+                    
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p
+                      className={cn(
+                        "text-xs mt-1",
+                        senderInfo.alignRight
+                          ? "opacity-70"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {formatTime(message.created_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ScrollArea>
+
+      {/* Manual response input */}
+      <ChatInput 
+        onSendMessage={handleSendManualMessage}
+        placeholder="Digite sua resposta manual..."
+      />
     </div>
   );
 };
