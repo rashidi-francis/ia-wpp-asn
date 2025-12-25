@@ -82,7 +82,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         number: toNumber,
-        textMessage: { text: content },
+        text: content,
         options: {
           presence: 'composing',
           linkPreview: true,

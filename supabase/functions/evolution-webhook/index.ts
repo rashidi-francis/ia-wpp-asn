@@ -510,7 +510,7 @@ async function sendTextMessageToEvolution(instanceName: string, number: string, 
       },
       body: JSON.stringify({
         number,
-        textMessage: { text },
+        text,
         options: {
           presence: 'composing',
           linkPreview: true,
