@@ -293,7 +293,8 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
         console.log('Created new conversation:', conversationId);
       }
       
-      // Save the message
+      // Save the message with sender_type
+      // sender_type: 'client' = customer message, 'ai' = AI response, 'human' = human operator
       const { error: messageError } = await supabase
         .from('whatsapp_messages')
         .insert({
@@ -302,12 +303,13 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
           content: content,
           is_from_me: isFromMe,
           message_type: 'text',
+          sender_type: isFromMe ? 'ai' : 'client',
         });
       
       if (messageError) {
         console.error('Error saving message:', messageError);
       } else {
-        console.log('Message saved successfully');
+        console.log('Message saved successfully with sender_type:', isFromMe ? 'ai' : 'client');
       }
       
       // Get agent_enabled status for this conversation

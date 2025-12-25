@@ -29,6 +29,7 @@ export interface Message {
   content: string;
   is_from_me: boolean;
   message_type: string;
+  sender_type?: 'client' | 'ai' | 'human';
   created_at: string;
 }
 
