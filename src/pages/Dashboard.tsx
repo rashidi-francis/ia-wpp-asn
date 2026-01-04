@@ -305,13 +305,7 @@ const Dashboard = () => {
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</h1>
           </div>
-          <div className="flex gap-2">
-            {isAdmin && (
-              <Button variant="secondary" onClick={() => navigate("/admin")}>
-                <Shield className="mr-2 h-4 w-4" />
-                Admin
-              </Button>
-            )}
+        <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -336,6 +330,15 @@ const Dashboard = () => {
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Suporte
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
