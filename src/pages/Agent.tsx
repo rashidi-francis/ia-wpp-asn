@@ -48,6 +48,8 @@ const Agent = () => {
   const [showPlanWarning, setShowPlanWarning] = useState(false);
   const [currentPlanName, setCurrentPlanName] = useState("");
   const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const [nome, setNome] = useState("");
   const [quemEh, setQuemEh] = useState("");
   const [oQueFaz, setOQueFaz] = useState("");
@@ -125,6 +127,17 @@ const Agent = () => {
     if (!session?.user || !id) return;
 
     try {
+      // Verificar se o usuário é admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      const userIsAdmin = !!roleData;
+      setIsAdmin(userIsAdmin);
+
       // Verificar o plano do usuário e data de criação/expiração
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -136,46 +149,69 @@ const Agent = () => {
 
       setCurrentPlanName(profileData.plano);
 
-      // Verificar se o plano expirou (Plano Teste Grátis + mais de 3 dias)
-      if (profileData.plano === "Plano Teste Grátis") {
-        const createdAt = new Date(profileData.created_at);
-        const now = new Date();
-        const diffInDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-        
-        if (diffInDays > 3) {
-          setShowTrialExpired(true);
-          setLoading(false);
-          return;
-        }
-      } else if (profileData.plan_expires_at) {
-        // Verificar expiração de planos pagos
-        const expiresAt = new Date(profileData.plan_expires_at);
-        const now = new Date();
-        const diffInDays = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        setDaysUntilExpiration(diffInDays);
-        
-        if (diffInDays <= 0) {
-          // Plano expirou
-          setShowPlanExpired(true);
-          setLoading(false);
-          return;
-        } else if (diffInDays <= 7) {
-          // Aviso de expiração próxima (não bloqueia, apenas avisa)
-          setShowPlanWarning(true);
+      // Verificar se o plano expirou (Plano Teste Grátis + mais de 3 dias) - apenas para não-admins
+      if (!userIsAdmin) {
+        if (profileData.plano === "Plano Teste Grátis") {
+          const createdAt = new Date(profileData.created_at);
+          const now = new Date();
+          const diffInDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (diffInDays > 3) {
+            setShowTrialExpired(true);
+            setLoading(false);
+            return;
+          }
+        } else if (profileData.plan_expires_at) {
+          // Verificar expiração de planos pagos
+          const expiresAt = new Date(profileData.plan_expires_at);
+          const now = new Date();
+          const diffInDays = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          setDaysUntilExpiration(diffInDays);
+          
+          if (diffInDays <= 0) {
+            // Plano expirou
+            setShowPlanExpired(true);
+            setLoading(false);
+            return;
+          } else if (diffInDays <= 7) {
+            // Aviso de expiração próxima (não bloqueia, apenas avisa)
+            setShowPlanWarning(true);
+          }
         }
       }
 
-      const { data, error } = await supabase
+      // Buscar agente - admin pode ver qualquer agente, usuário só vê o próprio
+      let agentQuery = supabase
         .from("agents")
         .select("*")
-        .eq("id", id)
-        .eq("user_id", session.user.id)
-        .single();
+        .eq("id", id);
+
+      // Se não for admin, filtra pelo user_id
+      if (!userIsAdmin) {
+        agentQuery = agentQuery.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await agentQuery.maybeSingle();
 
       if (error) throw error;
 
+      if (!data) {
+        toast({
+          variant: "destructive",
+          title: "Agente não encontrado",
+          description: "Não foi possível encontrar o agente solicitado.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
       setAgent(data);
+
+      // Se for admin visualizando agente de outro usuário, ativar modo somente leitura
+      if (userIsAdmin && data.user_id !== session.user.id) {
+        setIsViewOnly(true);
+      }
 
       // Se existir rascunho local com conteúdo, NÃO sobrescreva com valores do banco
       // (isso evita perder texto ao voltar pra aba e o loadAgent rodar novamente)
@@ -314,31 +350,44 @@ const Agent = () => {
       <header className="border-b border-primary/20 bg-card/80 backdrop-blur-xl shadow-lg sticky top-0 z-10 animate-fade-in">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="hover:bg-primary/10">
+            <Button variant="ghost" size="icon" onClick={() => navigate(isViewOnly ? "/admin" : "/dashboard")} className="hover:bg-primary/10">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
               <span className="text-lg font-bold text-primary-foreground">AI</span>
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Instruções do Agente</h1>
-          </div>
-          <Button onClick={handleSave} disabled={saving} className="shadow-lg hover:shadow-glow transition-all duration-300">
-            {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              {isViewOnly ? "Visualizando Agente" : "Instruções do Agente"}
+            </h1>
+            {isViewOnly && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full border border-amber-200">
+                Somente Leitura
+              </span>
             )}
-            Salvar Instruções
-          </Button>
+          </div>
+          {!isViewOnly && (
+            <Button onClick={handleSave} disabled={saving} className="shadow-lg hover:shadow-glow transition-all duration-300">
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Salvar Instruções
+            </Button>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="mb-6 border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-glow animate-fade-in-scale">
           <CardHeader>
-            <CardTitle className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Configure seu Agente de IA</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              {isViewOnly ? "Configurações do Agente" : "Configure seu Agente de IA"}
+            </CardTitle>
             <CardDescription>
-              Preencha as informações abaixo para definir o comportamento do seu agente.
+              {isViewOnly 
+                ? "Visualização das configurações do agente deste cliente."
+                : "Preencha as informações abaixo para definir o comportamento do seu agente."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -353,6 +402,8 @@ const Agent = () => {
                 onChange={(e) => setNome(e.target.value)}
                 maxLength={100}
                 className="max-w-md"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -369,6 +420,8 @@ const Agent = () => {
                 value={quemEh}
                 onChange={(e) => setQuemEh(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -385,6 +438,8 @@ const Agent = () => {
                 value={oQueFaz}
                 onChange={(e) => setOQueFaz(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -401,6 +456,8 @@ const Agent = () => {
                 value={objetivo}
                 onChange={(e) => setObjetivo(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -417,6 +474,8 @@ const Agent = () => {
                 value={comoDeveResponder}
                 onChange={(e) => setComoDeveResponder(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
           </CardContent>
@@ -440,6 +499,8 @@ const Agent = () => {
                 value={instrucoesAgente}
                 onChange={(e) => setInstrucoesAgente(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -456,6 +517,8 @@ const Agent = () => {
                 value={topicosEvitar}
                 onChange={(e) => setTopicosEvitar(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -472,6 +535,8 @@ const Agent = () => {
                 value={palavrasEvitar}
                 onChange={(e) => setPalavrasEvitar(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -488,6 +553,8 @@ const Agent = () => {
                 value={linksPermitidos}
                 onChange={(e) => setLinksPermitidos(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -504,6 +571,8 @@ const Agent = () => {
                 value={regrasPersonalizadas}
                 onChange={(e) => setRegrasPersonalizadas(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
           </CardContent>
@@ -531,6 +600,8 @@ const Agent = () => {
                 value={respostaPadraoErro}
                 onChange={(e) => setRespostaPadraoErro(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
 
@@ -547,6 +618,8 @@ const Agent = () => {
                 value={respostaSecundariaErro}
                 onChange={(e) => setRespostaSecundariaErro(e.target.value)}
                 className="min-h-[80px]"
+                readOnly={isViewOnly}
+                disabled={isViewOnly}
               />
             </div>
           </CardContent>
