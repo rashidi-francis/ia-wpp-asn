@@ -376,8 +376,30 @@ const Dashboard = () => {
                 {profile?.plano || "Básico"}
               </Badge>
               
-              {/* Expiration info for paid plans */}
-              {profile?.plan_expires_at && profile?.plano !== "Plano Teste Grátis" && (
+              {/* Expiration info - show for all plans */}
+              {profile?.plano === "Plano Teste Grátis" ? (
+                (() => {
+                  const createdDate = new Date(profile.created_at);
+                  const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+                  const now = new Date();
+                  const diffInDays = Math.ceil((trialExpiration.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const isExpired = diffInDays <= 0;
+                  
+                  return (
+                    <div className={`flex items-center gap-2 text-sm ${
+                      isExpired ? 'text-destructive' : diffInDays <= 2 ? 'text-yellow-600' : 'text-muted-foreground'
+                    }`}>
+                      {isExpired ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                      <span>
+                        {isExpired 
+                          ? 'Período de teste expirado - Faça upgrade'
+                          : `Expira em ${trialExpiration.toLocaleDateString('pt-BR')} (${diffInDays} ${diffInDays === 1 ? 'dia' : 'dias'})`
+                        }
+                      </span>
+                    </div>
+                  );
+                })()
+              ) : profile?.plan_expires_at ? (
                 <div className={`flex items-center gap-2 text-sm ${
                   daysUntilExpiration !== undefined && daysUntilExpiration <= 7 
                     ? daysUntilExpiration <= 0 
@@ -399,6 +421,11 @@ const Dashboard = () => {
                       <span className="font-semibold"> ({daysUntilExpiration} {daysUntilExpiration === 1 ? 'dia' : 'dias'})</span>
                     )}
                   </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Vitalício</span>
                 </div>
               )}
             </CardContent>

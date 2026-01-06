@@ -300,15 +300,17 @@ const Admin = () => {
   const handleRenewPlan = async (userId: string, type: "30days" | "lifetime") => {
     try {
       const user = users.find(u => u.id === userId);
-      let newExpiresAt: string | null = null;
+      let newExpiresAt: string;
       
       if (type === "30days") {
         const newDate = new Date();
         newDate.setDate(newDate.getDate() + 30);
         newExpiresAt = newDate.toISOString();
       } else {
-        // Vitalício = null (nunca expira)
-        newExpiresAt = null;
+        // Vitalício = data 100 anos no futuro (para diferenciar de "não pago" que é null)
+        const lifetimeDate = new Date();
+        lifetimeDate.setFullYear(lifetimeDate.getFullYear() + 100);
+        newExpiresAt = lifetimeDate.toISOString();
       }
 
       const { error } = await supabase
@@ -459,16 +461,41 @@ const Admin = () => {
     }
   };
 
-  const getExpirationDisplay = (expiresAt: string | null, plano: string) => {
-    // Se não tem data de expiração E não é o plano teste grátis, é vitalício
+  const getExpirationDisplay = (user: User) => {
+    const { plan_expires_at: expiresAt, plano, created_at } = user;
+    
+    // Para Plano Teste Grátis, calcular expiração = created_at + 3 dias
+    if (plano === "Plano Teste Grátis") {
+      const createdDate = new Date(created_at);
+      const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+      return trialExpiration.toLocaleDateString("pt-BR");
+    }
+    
+    // Para planos pagos, verificar se tem data de expiração definida
     if (!expiresAt) {
-      // Plano teste grátis sem data = ainda não definido (deveria ter 3 dias)
-      if (plano === "Plano Teste Grátis") {
-        return "Aguardando definição";
-      }
+      // Sem data de expiração = ainda não pagou/processou - aguardando
+      return "Aguardando pagamento";
+    }
+    
+    // Verificar se é "Vitalício" (data muito distante, ex: 100 anos no futuro)
+    const expDate = new Date(expiresAt);
+    const now = new Date();
+    const yearsUntilExpiration = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 365);
+    
+    if (yearsUntilExpiration > 50) {
       return "Vitalício";
     }
-    return new Date(expiresAt).toLocaleDateString("pt-BR");
+    
+    return expDate.toLocaleDateString("pt-BR");
+  };
+
+  const isTrialExpired = (user: User) => {
+    if (user.plano === "Plano Teste Grátis") {
+      const createdDate = new Date(user.created_at);
+      const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+      return trialExpiration < new Date();
+    }
+    return false;
   };
 
   const isExpired = (expiresAt: string | null) => {
@@ -669,8 +696,8 @@ const Admin = () => {
                       </div>
                       <div>
                         <span className="text-muted-foreground">Expira em:</span>{" "}
-                        <span className={`font-medium ${isExpired(user.plan_expires_at) ? 'text-red-600' : ''}`}>
-                          {getExpirationDisplay(user.plan_expires_at, user.plano)}
+                        <span className={`font-medium ${isExpired(user.plan_expires_at) || isTrialExpired(user) ? 'text-red-600' : ''}`}>
+                          {getExpirationDisplay(user)}
                         </span>
                       </div>
                     </div>
