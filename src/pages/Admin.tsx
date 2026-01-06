@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, ArrowLeft, Users, Bot, MessageSquare, MessagesSquare, Eye, Trash2, RefreshCw, Infinity, Search, ChevronRight, CheckCircle } from "lucide-react";
+import { Shield, ArrowLeft, Users, Bot, MessageSquare, MessagesSquare, Eye, Trash2, RefreshCw, Infinity, Search, ChevronRight } from "lucide-react";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,6 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 
 interface User {
   id: string;
@@ -38,6 +39,12 @@ interface User {
   conversations_count: number;
   messages_count: number;
   agents: Agent[];
+}
+
+interface SuccessDialog {
+  open: boolean;
+  title: string;
+  description: string;
 }
 
 interface Agent {
@@ -60,6 +67,11 @@ const Admin = () => {
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [successDialog, setSuccessDialog] = useState<SuccessDialog>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   // Stats
   const [totalUsers, setTotalUsers] = useState(0);
@@ -278,18 +290,11 @@ const Admin = () => {
 
       if (error) throw error;
 
-      toast.success(
-        <div className="flex items-start gap-3">
-          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
-            <p className="text-sm text-muted-foreground">
-              Usuário: {user?.email} foi movido com sucesso para o plano {newPlan}.
-            </p>
-          </div>
-        </div>,
-        { duration: 5000 }
-      );
+      setSuccessDialog({
+        open: true,
+        title: "Parabéns! Alteração Bem Sucedida!",
+        description: `O usuário ${user?.email} foi movido com sucesso para o plano ${newPlan}.`,
+      });
       await loadUsers();
     } catch (error: any) {
       console.error("Error updating plan:", error);
@@ -320,21 +325,13 @@ const Admin = () => {
 
       if (error) throw error;
 
-      toast.success(
-        <div className="flex items-start gap-3">
-          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
-            <p className="text-sm text-muted-foreground">
-              {type === "30days" 
-                ? `Foi renovado o plano com sucesso para mais 30 dias! Usuário: ${user?.email}`
-                : `Foi renovado o plano com sucesso para Vitalício! Usuário: ${user?.email}`
-              }
-            </p>
-          </div>
-        </div>,
-        { duration: 5000 }
-      );
+      setSuccessDialog({
+        open: true,
+        title: "Parabéns! Alteração Bem Sucedida!",
+        description: type === "30days" 
+          ? `Foi renovado o plano com sucesso para mais 30 dias! Usuário: ${user?.email}`
+          : `Foi renovado o plano com sucesso para Vitalício! Usuário: ${user?.email}`,
+      });
       await loadUsers();
     } catch (error: any) {
       console.error("Error renewing plan:", error);
@@ -353,36 +350,22 @@ const Admin = () => {
           .eq("role", "admin");
 
         if (error) throw error;
-        toast.success(
-          <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
-              <p className="text-sm text-muted-foreground">
-                Permissão de admin removida do usuário: {user?.email}
-              </p>
-            </div>
-          </div>,
-          { duration: 5000 }
-        );
+        setSuccessDialog({
+          open: true,
+          title: "Parabéns! Alteração Bem Sucedida!",
+          description: `Permissão de admin removida do usuário: ${user?.email}`,
+        });
       } else {
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: userId, role: "admin" });
 
         if (error) throw error;
-        toast.success(
-          <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
-              <p className="text-sm text-muted-foreground">
-                Foi promovido como admin! Agora {user?.email} pode ter acesso a todos os clientes da plataforma.
-              </p>
-            </div>
-          </div>,
-          { duration: 5000 }
-        );
+        setSuccessDialog({
+          open: true,
+          title: "Parabéns! Alteração Bem Sucedida!",
+          description: `Foi promovido como admin! Agora ${user?.email} pode ter acesso a todos os clientes da plataforma.`,
+        });
       }
 
       await loadUsers();
@@ -420,10 +403,16 @@ const Admin = () => {
 
       if (profileError) throw profileError;
 
-      toast.success("Usuário eliminado com sucesso");
+      const deletedEmail = userToDelete.email;
       setDeleteUserDialogOpen(false);
       setUserToDelete(null);
       await loadUsers();
+      
+      setSuccessDialog({
+        open: true,
+        title: "Parabéns! Alteração Bem Sucedida!",
+        description: `O usuário ${deletedEmail} foi eliminado permanentemente com sucesso.`,
+      });
     } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error("Erro ao eliminar usuário: " + error.message);
@@ -855,6 +844,13 @@ const Admin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminSuccessDialog 
+        open={successDialog.open}
+        onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
+        title={successDialog.title}
+        description={successDialog.description}
+      />
     </div>
   );
 };
