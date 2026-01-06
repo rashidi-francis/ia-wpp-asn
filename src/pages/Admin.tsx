@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, ArrowLeft, Users, Bot, MessageSquare, MessagesSquare, Eye, Trash2, RefreshCw, Infinity, Search } from "lucide-react";
+import { Shield, ArrowLeft, Users, Bot, MessageSquare, MessagesSquare, Eye, Trash2, RefreshCw, Infinity, Search, ChevronRight, CheckCircle } from "lucide-react";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -270,6 +270,7 @@ const Admin = () => {
 
   const handlePlanChange = async (userId: string, newPlan: "Plano Teste Grátis" | "Básico" | "Avançado" | "Empresarial") => {
     try {
+      const user = users.find(u => u.id === userId);
       const { error } = await supabase
         .from("profiles")
         .update({ plano: newPlan })
@@ -277,7 +278,18 @@ const Admin = () => {
 
       if (error) throw error;
 
-      toast.success("Plano atualizado com sucesso");
+      toast.success(
+        <div className="flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
+            <p className="text-sm text-muted-foreground">
+              Usuário: {user?.email} foi movido com sucesso para o plano {newPlan}.
+            </p>
+          </div>
+        </div>,
+        { duration: 5000 }
+      );
       await loadUsers();
     } catch (error: any) {
       console.error("Error updating plan:", error);
@@ -287,6 +299,7 @@ const Admin = () => {
 
   const handleRenewPlan = async (userId: string, type: "30days" | "lifetime") => {
     try {
+      const user = users.find(u => u.id === userId);
       let newExpiresAt: string | null = null;
       
       if (type === "30days") {
@@ -305,7 +318,21 @@ const Admin = () => {
 
       if (error) throw error;
 
-      toast.success(type === "30days" ? "Renovado por +30 dias" : "Plano definido como Vitalício");
+      toast.success(
+        <div className="flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
+            <p className="text-sm text-muted-foreground">
+              {type === "30days" 
+                ? `Foi renovado o plano com sucesso para mais 30 dias! Usuário: ${user?.email}`
+                : `Foi renovado o plano com sucesso para Vitalício! Usuário: ${user?.email}`
+              }
+            </p>
+          </div>
+        </div>,
+        { duration: 5000 }
+      );
       await loadUsers();
     } catch (error: any) {
       console.error("Error renewing plan:", error);
@@ -315,6 +342,7 @@ const Admin = () => {
 
   const toggleAdminRole = async (userId: string, currentIsAdmin: boolean) => {
     try {
+      const user = users.find(u => u.id === userId);
       if (currentIsAdmin) {
         const { error } = await supabase
           .from("user_roles")
@@ -323,14 +351,36 @@ const Admin = () => {
           .eq("role", "admin");
 
         if (error) throw error;
-        toast.success("Permissão de admin removida");
+        toast.success(
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
+              <p className="text-sm text-muted-foreground">
+                Permissão de admin removida do usuário: {user?.email}
+              </p>
+            </div>
+          </div>,
+          { duration: 5000 }
+        );
       } else {
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: userId, role: "admin" });
 
         if (error) throw error;
-        toast.success("Permissão de admin concedida");
+        toast.success(
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold">Parabéns! Alteração Bem Sucedida!</p>
+              <p className="text-sm text-muted-foreground">
+                Foi promovido como admin! Agora {user?.email} pode ter acesso a todos os clientes da plataforma.
+              </p>
+            </div>
+          </div>,
+          { duration: 5000 }
+        );
       }
 
       await loadUsers();
@@ -409,8 +459,15 @@ const Admin = () => {
     }
   };
 
-  const getExpirationDisplay = (expiresAt: string | null) => {
-    if (!expiresAt) return "Vitalício";
+  const getExpirationDisplay = (expiresAt: string | null, plano: string) => {
+    // Se não tem data de expiração E não é o plano teste grátis, é vitalício
+    if (!expiresAt) {
+      // Plano teste grátis sem data = ainda não definido (deveria ter 3 dias)
+      if (plano === "Plano Teste Grátis") {
+        return "Aguardando definição";
+      }
+      return "Vitalício";
+    }
     return new Date(expiresAt).toLocaleDateString("pt-BR");
   };
 
@@ -559,26 +616,35 @@ const Admin = () => {
               <Card className="bg-white border shadow-sm overflow-hidden">
                 <CollapsibleTrigger asChild>
                   <div className="p-4 cursor-pointer hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-lg">{user.nome}</h3>
-                          {user.is_admin && (
-                            <Badge className="bg-blue-100 text-blue-700 text-xs">Admin</Badge>
-                          )}
-                          <Badge className={`${getPlanBadgeColor(user.plano)} text-xs`}>
-                            {user.plano}
-                          </Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {/* Arrow/Chevron */}
+                        <ChevronRight 
+                          className={`h-5 w-5 text-orange-500 transition-transform duration-200 ${
+                            expandedUsers.has(user.id) ? 'rotate-90' : ''
+                          }`} 
+                        />
+                        
+                        {/* Plan Badge */}
+                        <Badge className={`${getPlanBadgeColor(user.plano)} px-3 py-1`}>
+                          {user.plano}
+                        </Badge>
+                        
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Bot className="h-4 w-4" />
+                            {user.agents_count} agentes
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-4 w-4" />
+                            {user.conversations_count} conversas
+                          </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-muted-foreground">
-                          {user.agents_count} agentes
-                        </p>
-                        <p className="text-muted-foreground">
-                          {user.conversations_count} conversas
-                        </p>
+                        
+                        {user.is_admin && (
+                          <Badge className="bg-blue-100 text-blue-700 text-xs">Admin</Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -599,7 +665,7 @@ const Admin = () => {
                       <div>
                         <span className="text-muted-foreground">Expira em:</span>{" "}
                         <span className={`font-medium ${isExpired(user.plan_expires_at) ? 'text-red-600' : ''}`}>
-                          {getExpirationDisplay(user.plan_expires_at)}
+                          {getExpirationDisplay(user.plan_expires_at, user.plano)}
                         </span>
                       </div>
                     </div>
