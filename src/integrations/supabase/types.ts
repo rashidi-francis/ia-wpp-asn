@@ -365,6 +365,7 @@ export type Database = {
           is_from_me: boolean | null
           message_id: string | null
           message_type: string | null
+          sender_type: string | null
         }
         Insert: {
           content: string
@@ -374,6 +375,7 @@ export type Database = {
           is_from_me?: boolean | null
           message_id?: string | null
           message_type?: string | null
+          sender_type?: string | null
         }
         Update: {
           content?: string
@@ -383,6 +385,7 @@ export type Database = {
           is_from_me?: boolean | null
           message_id?: string | null
           message_type?: string | null
+          sender_type?: string | null
         }
         Relationships: [
           {
