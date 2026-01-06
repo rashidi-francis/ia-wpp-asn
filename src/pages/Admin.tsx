@@ -617,20 +617,23 @@ const Admin = () => {
                 <CollapsibleTrigger asChild>
                   <div className="p-4 cursor-pointer hover:bg-muted/30 transition-colors">
                     <div className="flex items-center justify-between">
+                      {/* Left side: Name and Email */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-lg">{user.nome}</h3>
+                          {user.is_admin && (
+                            <Badge className="bg-blue-100 text-blue-700 text-xs">Admin</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-primary">{user.email}</p>
+                      </div>
+                      
+                      {/* Right side: Plan badge, stats and chevron */}
                       <div className="flex items-center gap-4">
-                        {/* Arrow/Chevron */}
-                        <ChevronRight 
-                          className={`h-5 w-5 text-orange-500 transition-transform duration-200 ${
-                            expandedUsers.has(user.id) ? 'rotate-90' : ''
-                          }`} 
-                        />
-                        
-                        {/* Plan Badge */}
                         <Badge className={`${getPlanBadgeColor(user.plano)} px-3 py-1`}>
                           {user.plano}
                         </Badge>
                         
-                        {/* Stats */}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Bot className="h-4 w-4" />
@@ -642,9 +645,11 @@ const Admin = () => {
                           </span>
                         </div>
                         
-                        {user.is_admin && (
-                          <Badge className="bg-blue-100 text-blue-700 text-xs">Admin</Badge>
-                        )}
+                        <ChevronRight 
+                          className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
+                            expandedUsers.has(user.id) ? 'rotate-90' : ''
+                          }`} 
+                        />
                       </div>
                     </div>
                   </div>
