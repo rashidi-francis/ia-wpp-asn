@@ -27,9 +27,9 @@ export interface Message {
   conversation_id: string;
   message_id: string | null;
   content: string;
-  is_from_me: boolean;
-  message_type: string;
-  sender_type?: 'client' | 'ai' | 'human';
+  is_from_me: boolean | null;
+  message_type: string | null;
+  sender_type: string | null;
   created_at: string;
 }
 
