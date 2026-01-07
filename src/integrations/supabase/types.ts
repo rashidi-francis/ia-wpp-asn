@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_calendar_settings: {
+        Row: {
+          agent_id: string
+          created_at: string
+          enabled: boolean
+          google_calendar_id: string | null
+          google_refresh_token: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          enabled?: boolean
+          google_calendar_id?: string | null
+          google_refresh_token?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          enabled?: boolean
+          google_calendar_id?: string | null
+          google_refresh_token?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_agent_calendar"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_followup_settings: {
+        Row: {
+          agent_id: string
+          created_at: string
+          custom_message: string | null
+          delay_type: string
+          enabled: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          custom_message?: string | null
+          delay_type?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          custom_message?: string | null
+          delay_type?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_agent"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_photos: {
+        Row: {
+          agent_id: string
+          created_at: string
+          description: string | null
+          id: string
+          url: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          url: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_agent_photos"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           como_deve_responder: string | null
