@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle, HelpCircle } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle, HelpCircle, RefreshCw, Calendar, Image } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
@@ -19,6 +19,9 @@ import { PlanDialog } from "@/components/PlanDialog";
 import { TeamDialog } from "@/components/TeamDialog";
 import { PlanExpiredDialog } from "@/components/PlanExpiredDialog";
 import { SupportFAQDialog } from "@/components/SupportFAQDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { CalendarDialog } from "@/components/CalendarDialog";
+import { AgentPhotosDialog } from "@/components/AgentPhotosDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +79,12 @@ const Dashboard = () => {
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const [planExpirationWarningOpen, setPlanExpirationWarningOpen] = useState(false);
   const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
+  
+  // Dialog states for agent settings
+  const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
+  const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -508,11 +517,39 @@ const Dashboard = () => {
                             Configurações
                           </DropdownMenuItem>
                           <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedAgentId(agent.id);
+                              setFollowUpDialogOpen(true);
+                            }}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Follow-up
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedAgentId(agent.id);
+                              setCalendarDialogOpen(true);
+                            }}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Conectar Agenda
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedAgentId(agent.id);
+                              setPhotosDialogOpen(true);
+                            }}
+                          >
+                            <Image className="mr-2 h-4 w-4" />
+                            Fotos
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => navigate(`/agent/${agent.id}/chats`)}
                           >
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Chat
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => initiateDelete(agent)}
                             className="text-destructive focus:text-destructive"
@@ -699,6 +736,36 @@ const Dashboard = () => {
         open={supportDialogOpen}
         onOpenChange={setSupportDialogOpen}
       />
+
+      {/* Agent settings dialogs */}
+      {selectedAgentId && (
+        <>
+          <FollowUpDialog
+            open={followUpDialogOpen}
+            onOpenChange={(open) => {
+              setFollowUpDialogOpen(open);
+              if (!open) setSelectedAgentId(null);
+            }}
+            agentId={selectedAgentId}
+          />
+          <CalendarDialog
+            open={calendarDialogOpen}
+            onOpenChange={(open) => {
+              setCalendarDialogOpen(open);
+              if (!open) setSelectedAgentId(null);
+            }}
+            agentId={selectedAgentId}
+          />
+          <AgentPhotosDialog
+            open={photosDialogOpen}
+            onOpenChange={(open) => {
+              setPhotosDialogOpen(open);
+              if (!open) setSelectedAgentId(null);
+            }}
+            agentId={selectedAgentId}
+          />
+        </>
+      )}
       <Footer />
     </div>
   );
