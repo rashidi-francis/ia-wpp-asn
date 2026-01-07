@@ -887,81 +887,57 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer {{ $credentials.googleCalendarOAuth2Api.accessToken }}"
-            }
-          ]
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "primary"
         },
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "timeMin",
-              "value": "={{ $now.toISO() }}"
-            },
-            {
-              "name": "timeMax",
-              "value": "={{ $now.plus({ days: 7 }).toISO() }}"
-            }
-          ]
-        },
-        "options": {}
+        "returnAll": false,
+        "limit": 10,
+        "options": {
+          "timeMin": "={{ $now.toISO() }}",
+          "timeMax": "={{ $now.plus({ days: 7 }).toISO() }}"
+        }
       },
       "id": "calendar-check-availability-001",
       "name": "Check Calendar Availability",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
       "position": [4200, 2000],
-      "notes": "Configure Google Calendar OAuth2 credentials in n8n"
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "google-calendar-chatasn",
+          "name": "Google Calendar ChatASN Brasil"
+        }
+      }
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer {{ $credentials.googleCalendarOAuth2Api.accessToken }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "primary"
         },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "summary",
-              "value": "={{ $json.eventTitle }}"
-            },
-            {
-              "name": "start",
-              "value": "={{ $json.eventStart }}"
-            },
-            {
-              "name": "end",
-              "value": "={{ $json.eventEnd }}"
-            }
-          ]
-        },
-        "options": {}
+        "summary": "={{ $json.eventTitle }}",
+        "start": "={{ $json.eventStart }}",
+        "end": "={{ $json.eventEnd }}",
+        "additionalFields": {
+          "description": "Agendamento via ChatASN"
+        }
       },
       "id": "calendar-create-event-001",
       "name": "Create Calendar Event",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
       "position": [4400, 2000],
-      "notes": "Configure Google Calendar OAuth2 credentials in n8n"
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "google-calendar-chatasn",
+          "name": "Google Calendar ChatASN Brasil"
+        }
+      }
     }
   ],
   "pinData": {},
