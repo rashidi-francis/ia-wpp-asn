@@ -890,8 +890,9 @@
         "operation": "getAll",
         "calendar": {
           "__rl": true,
-          "mode": "id",
-          "value": "primary"
+          "mode": "list",
+          "value": "primary",
+          "cachedResultName": "Calendário Principal"
         },
         "returnAll": false,
         "limit": 10,
@@ -917,8 +918,9 @@
         "operation": "create",
         "calendar": {
           "__rl": true,
-          "mode": "id",
-          "value": "primary"
+          "mode": "list",
+          "value": "primary",
+          "cachedResultName": "Calendário Principal"
         },
         "summary": "={{ $json.eventTitle }}",
         "start": "={{ $json.eventStart }}",
