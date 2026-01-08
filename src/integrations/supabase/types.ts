@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_calendar_oauth_states: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          redirect_origin: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          redirect_origin: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          redirect_origin?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_calendar_settings: {
         Row: {
           agent_id: string
