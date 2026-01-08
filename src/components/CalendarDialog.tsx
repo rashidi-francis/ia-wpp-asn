@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, CheckCircle2 } from "lucide-react";
+import { Loader2, Calendar } from "lucide-react";
 
 interface CalendarDialogProps {
   open: boolean;
@@ -161,43 +161,21 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
             </div>
 
             {settings.enabled && (
-              <>
-                <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-800 dark:text-green-200">
-                        Google Calendar Conectado
-                      </p>
-                      <p className="text-sm text-green-600 dark:text-green-400">
-                        A IA pode verificar disponibilidade e criar eventos
-                      </p>
-                    </div>
+              <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <Calendar className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Conexão via n8n
+                    </p>
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      A integração com Google Calendar é feita através do workflow n8n configurado pelo administrador.
+                    </p>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="calendar_id" className="text-base">
-                    Endereço do Calendário (opcional)
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Informe o e-mail associado ao calendário. Deixe em branco para usar o calendário principal da conta.
-                  </p>
-                  <Input
-                    id="calendar_id"
-                    placeholder="Ex: seuemail@gmail.com"
-                    value={settings.google_calendar_id || ""}
-                    onChange={(e) =>
-                      setSettings({ ...settings, google_calendar_id: e.target.value })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    💡 O e-mail do calendário é o mesmo usado para fazer login no Google
-                  </p>
-                </div>
-              </>
+              </div>
             )}
           </div>
         )}
