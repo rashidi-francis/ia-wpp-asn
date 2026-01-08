@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.sync-agent-n8n]
 verify_jwt = true
+
+[functions.google-calendar-oauth]
+verify_jwt = false
