@@ -404,6 +404,19 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       console.error('Error fetching agent for prompt:', agentError);
     }
 
+    // Fetch follow-up settings for this agent
+    const { data: followupSettings, error: followupError } = await supabase
+      .from('agent_followup_settings')
+      .select('*')
+      .eq('agent_id', instance.agent_id)
+      .maybeSingle();
+
+    if (followupError) {
+      console.error('Error fetching follow-up settings:', followupError);
+    }
+
+    console.log('Follow-up settings:', JSON.stringify(followupSettings));
+
     // Build the concatenated prompt from all agent instruction fields
     const prompt = agent ? buildSystemMessage(agent) : '';
 
@@ -444,6 +457,10 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
         phone_number: instance.phone_number,
         message: messageText,
         prompt: prompt,
+        // Follow-up settings for n8n workflow
+        followup_enabled: followupSettings?.enabled ?? false,
+        followup_delay: followupSettings?.delay_type ?? '24h',
+        followup_message: followupSettings?.custom_message ?? '',
       }),
     });
 
