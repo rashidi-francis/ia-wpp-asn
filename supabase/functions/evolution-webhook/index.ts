@@ -70,7 +70,7 @@ serve(async (req) => {
         const conversationInfo = await saveMessageToDatabase(supabase, whatsappInstance, data);
         // Only forward to n8n if agent is enabled for this conversation and message is from user
         if (conversationInfo?.shouldForward && conversationInfo?.agentEnabled) {
-          await forwardMessageToN8N(supabase, whatsappInstance, payload);
+          await forwardMessageToN8N(supabase, whatsappInstance, payload, conversationInfo.conversationId);
         } else if (conversationInfo?.shouldForward && !conversationInfo?.agentEnabled) {
           console.log('Agent is disabled for this conversation, not forwarding to n8n');
         }
@@ -171,11 +171,21 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
   }
 }
 
-async function saveMessageToDatabase(supabase: any, instance: any, data: any): Promise<{ shouldForward: boolean; agentEnabled: boolean } | null> {
+// Convert delay_type to milliseconds
+function getDelayMs(delayType: string): number {
+  switch (delayType) {
+    case '30min': return 30 * 60 * 1000;
+    case '24h': return 24 * 60 * 60 * 1000;
+    case '3d': return 3 * 24 * 60 * 60 * 1000;
+    default: return 24 * 60 * 60 * 1000;
+  }
+}
+
+async function saveMessageToDatabase(supabase: any, instance: any, data: any): Promise<{ shouldForward: boolean; agentEnabled: boolean; conversationId: string | null } | null> {
   try {
     // Evolution API can send messages in different formats
     const messages = data.messages || [data];
-    let result: { shouldForward: boolean; agentEnabled: boolean } | null = null;
+    let result: { shouldForward: boolean; agentEnabled: boolean; conversationId: string | null } | null = null;
     
     for (const message of messages) {
       const key = message.key || {};
@@ -259,6 +269,14 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
         // Increment unread count if message is not from me
         if (!isFromMe) {
           updateData.unread_count = (existingConversation.unread_count || 0) + 1;
+          
+          // ===== FOLLOW-UP LOGIC: LEAD RESPONDED =====
+          // When lead sends a message, cancel any pending follow-up
+          updateData.last_message_from = 'lead';
+          updateData.status = 'open';
+          updateData.followup_due_at = null;
+          updateData.followup_sent = false;
+          console.log(`Lead responded in conversation ${conversationId}, cancelling follow-up`);
         }
         
         await supabase
@@ -268,7 +286,7 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
         
         console.log('Updated conversation:', conversationId);
       } else {
-        // Create new conversation
+        // Create new conversation with follow-up fields
         const { data: newConversation, error: createError } = await supabase
           .from('whatsapp_conversations')
           .insert({
@@ -280,6 +298,12 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
             last_message_at: new Date().toISOString(),
             unread_count: isFromMe ? 0 : 1,
             agent_enabled: true,
+            // Follow-up fields
+            status: 'open',
+            last_message_from: isFromMe ? 'ai' : 'lead',
+            followup_due_at: null,
+            followup_sent: false,
+            followup_count: 0,
           })
           .select()
           .single();
@@ -322,7 +346,8 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
       // Only forward if message is from user (not from agent/me)
       result = {
         shouldForward: !isFromMe,
-        agentEnabled: convData?.agent_enabled ?? true
+        agentEnabled: convData?.agent_enabled ?? true,
+        conversationId: conversationId
       };
     }
     
@@ -388,7 +413,7 @@ function buildSystemMessage(agent: any): string {
   return sections.join('\n\n');
 }
 
-async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
+async function forwardMessageToN8N(supabase: any, instance: any, payload: any, conversationId: string | null) {
   try {
     console.log('Forwarding message to n8n webhook...');
     console.log('Instance:', instance.instance_name);
@@ -457,8 +482,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       return;
     }
 
-    // IMPORTANT: n8n workflow expects this exact shape:
-    // body.data.key.remoteJid, body.data.messageType, body.data.message.conversation
+    // n8n workflow body - follow-up is now managed by backend, so we don't need to send followup_* fields
     const n8nBody = {
       instance_name: instance.instance_name,
       instance_id: instance.id,
@@ -466,9 +490,6 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       phone_number: instance.phone_number,
       message: messageText,
       prompt: prompt,
-      followup_enabled: followupSettings?.enabled ?? false,
-      followup_delay: followupSettings?.delay_type ?? '24h',
-      followup_message: followupSettings?.custom_message ?? '',
       data: {
         key: { remoteJid },
         remoteJid,
@@ -476,7 +497,6 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
         message: {
           conversation: messageText,
         },
-        // Keep original payload for debugging / future compatibility
         raw: payload,
       },
     };
@@ -499,9 +519,6 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
     console.log('Message forwarded to n8n successfully with prompt');
 
     // If n8n returns a reply in the HTTP response, send it back to WhatsApp via Evolution
-    // Expected response examples:
-    // - plain text: "Olá! ..."
-    // - JSON: { "reply": "Olá! ..." } or { "text": "Olá! ..." } or { "message": "Olá! ..." }
     let replyText: string | null = null;
     const trimmed = raw?.trim?.() ?? '';
 
@@ -532,6 +549,32 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
     }
 
     await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
+
+    // ===== FOLLOW-UP LOGIC: AI RESPONDED =====
+    // After AI responds, schedule follow-up if enabled
+    if (conversationId && followupSettings?.enabled) {
+      const delayMs = getDelayMs(followupSettings.delay_type || '24h');
+      const followupDueAt = new Date(Date.now() + delayMs);
+      
+      console.log(`Scheduling follow-up for conversation ${conversationId} at ${followupDueAt.toISOString()}`);
+      
+      const { error: updateError } = await supabase
+        .from('whatsapp_conversations')
+        .update({
+          last_message_from: 'ai',
+          status: 'open',
+          followup_due_at: followupDueAt.toISOString(),
+          followup_sent: false,
+        })
+        .eq('id', conversationId);
+      
+      if (updateError) {
+        console.error('Error scheduling follow-up:', updateError);
+      } else {
+        console.log(`Follow-up scheduled successfully for ${followupDueAt.toISOString()}`);
+      }
+    }
+
   } catch (error) {
     console.error('Error forwarding message to n8n:', error);
   }
