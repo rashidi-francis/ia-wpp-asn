@@ -167,7 +167,7 @@ serve(async (req) => {
         }
 
         // Determine follow-up message
-        const followupMessage = followupSettings.custom_message?.trim() || getRandomDefaultMessage();
+        const followupMessage = followupSettings?.custom_message?.trim() || getRandomDefaultMessage();
         
         console.log(`Sending follow-up to ${conversation.remote_jid}: "${followupMessage.substring(0, 50)}..."`);
 
