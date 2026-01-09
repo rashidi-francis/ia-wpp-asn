@@ -453,6 +453,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     let messageText = '';
     let remoteJid: string | null = null;
     let messageType: string = '';
+    let normalizedMessageData: any = null;
 
     for (const message of messages) {
       const key = message?.key || {};
@@ -460,6 +461,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       if (!remoteJid && typeof maybeRemoteJid === 'string') remoteJid = maybeRemoteJid;
 
       const messageData = message?.message || message;
+      if (!normalizedMessageData) normalizedMessageData = messageData;
 
       if (!messageType) {
         if (messageData?.audioMessage) messageType = 'audioMessage';
@@ -475,6 +477,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
         messageText = messageData.extendedTextMessage.text;
       }
 
+      // For audio messages we usually won't have text here; we still want to forward the audio payload.
       if (messageText) break;
     }
 
@@ -483,21 +486,26 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       return;
     }
 
+    // Ensure n8n gets a non-empty string for routing/debug, and also receives the full message payload
+    // (especially `audioMessage`, which is required for transcription workflows).
+    const finalMessageText = messageText || (messageType === 'audioMessage' ? '[Áudio]' : '');
+    const n8nMessagePayload = normalizedMessageData
+      ? { ...normalizedMessageData, conversation: finalMessageText }
+      : { conversation: finalMessageText };
+
     // n8n workflow body - follow-up is now managed by backend, so we don't need to send followup_* fields
     const n8nBody = {
       instance_name: instance.instance_name,
       instance_id: instance.id,
       agent_id: instance.agent_id,
       phone_number: instance.phone_number,
-      message: messageText,
+      message: finalMessageText,
       prompt: prompt,
       data: {
         key: { remoteJid },
         remoteJid,
         messageType: messageType || 'conversation',
-        message: {
-          conversation: messageText,
-        },
+        message: n8nMessagePayload,
         raw: payload,
       },
     };
