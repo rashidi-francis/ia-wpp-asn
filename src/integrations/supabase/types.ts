@@ -398,10 +398,15 @@ export type Database = {
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          followup_count: number | null
+          followup_due_at: string | null
+          followup_sent: boolean | null
           id: string
           last_message: string | null
           last_message_at: string | null
+          last_message_from: string | null
           remote_jid: string
+          status: string | null
           unread_count: number | null
           updated_at: string
         }
@@ -411,10 +416,15 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          followup_count?: number | null
+          followup_due_at?: string | null
+          followup_sent?: boolean | null
           id?: string
           last_message?: string | null
           last_message_at?: string | null
+          last_message_from?: string | null
           remote_jid: string
+          status?: string | null
           unread_count?: number | null
           updated_at?: string
         }
@@ -424,10 +434,15 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          followup_count?: number | null
+          followup_due_at?: string | null
+          followup_sent?: boolean | null
           id?: string
           last_message?: string | null
           last_message_at?: string | null
+          last_message_from?: string | null
           remote_jid?: string
+          status?: string | null
           unread_count?: number | null
           updated_at?: string
         }
