@@ -271,11 +271,12 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
           updateData.unread_count = (existingConversation.unread_count || 0) + 1;
           
           // ===== FOLLOW-UP LOGIC: LEAD RESPONDED =====
-          // When lead sends a message, cancel any pending follow-up
+          // When lead sends a message, cancel any pending follow-up and reset anti-spam counter
           updateData.last_message_from = 'lead';
           updateData.status = 'open';
           updateData.followup_due_at = null;
           updateData.followup_sent = false;
+          updateData.followup_count = 0;
           console.log(`Lead responded in conversation ${conversationId}, cancelling follow-up`);
         }
         
@@ -551,13 +552,19 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
 
     // ===== FOLLOW-UP LOGIC: AI RESPONDED =====
-    // After AI responds, schedule follow-up if enabled
-    if (conversationId && followupSettings?.enabled) {
-      const delayMs = getDelayMs(followupSettings.delay_type || '24h');
+    // After AI responds, schedule follow-up.
+    // IMPORTANT: if settings row doesn't exist yet, default to enabled + 30min (prevents silent failures).
+    const followupEnabled = followupSettings?.enabled ?? true;
+
+    if (conversationId && followupEnabled) {
+      const delayType = followupSettings?.delay_type || '30min';
+      const delayMs = getDelayMs(delayType);
       const followupDueAt = new Date(Date.now() + delayMs);
-      
-      console.log(`Scheduling follow-up for conversation ${conversationId} at ${followupDueAt.toISOString()}`);
-      
+
+      console.log(
+        `Scheduling follow-up for conversation ${conversationId} at ${followupDueAt.toISOString()} (delay_type=${delayType})`,
+      );
+
       const { error: updateError } = await supabase
         .from('whatsapp_conversations')
         .update({
@@ -565,9 +572,10 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
           status: 'open',
           followup_due_at: followupDueAt.toISOString(),
           followup_sent: false,
+          followup_count: 0,
         })
         .eq('id', conversationId);
-      
+
       if (updateError) {
         console.error('Error scheduling follow-up:', updateError);
       } else {

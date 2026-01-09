@@ -112,8 +112,11 @@ serve(async (req) => {
           .eq('agent_id', agent.id)
           .maybeSingle();
 
+        // IMPORTANT: if settings row doesn't exist yet, default to enabled (prevents silent "no follow-up" failures)
+        const followupEnabled = followupSettings?.enabled ?? true;
+
         // Skip if follow-up is disabled for this agent
-        if (!followupSettings?.enabled) {
+        if (!followupEnabled) {
           console.log(`Follow-up disabled for agent ${agent.id}, skipping conversation ${conversation.id}`);
           
           // Clear the followup_due_at to avoid rechecking
