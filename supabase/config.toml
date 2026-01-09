@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.google-calendar-oauth]
 verify_jwt = false
+
+[functions.test-followup]
+verify_jwt = false
