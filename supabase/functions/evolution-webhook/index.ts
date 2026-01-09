@@ -422,10 +422,11 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
 
     console.log('Prompt length:', prompt.length);
 
-    // Extract the message text + remoteJid from payload
+    // Extract the message text + remoteJid from payload (normalize for n8n workflow)
     const messages = payload.data?.messages || [payload.data];
     let messageText = '';
     let remoteJid: string | null = null;
+    let messageType: string = '';
 
     for (const message of messages) {
       const key = message?.key || {};
@@ -433,6 +434,15 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       if (!remoteJid && typeof maybeRemoteJid === 'string') remoteJid = maybeRemoteJid;
 
       const messageData = message?.message || message;
+
+      if (!messageType) {
+        if (messageData?.audioMessage) messageType = 'audioMessage';
+        else if (messageData?.imageMessage) messageType = 'imageMessage';
+        else if (messageData?.videoMessage) messageType = 'videoMessage';
+        else if (messageData?.documentMessage) messageType = 'documentMessage';
+        else messageType = 'conversation';
+      }
+
       if (messageData?.conversation) {
         messageText = messageData.conversation;
       } else if (messageData?.extendedTextMessage?.text) {
@@ -442,26 +452,41 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       if (messageText) break;
     }
 
-    const toNumber = remoteJid ? remoteJid.split('@')[0] : null;
+    if (!remoteJid) {
+      console.error('Could not extract remoteJid from payload; skipping n8n forward');
+      return;
+    }
+
+    // IMPORTANT: n8n workflow expects this exact shape:
+    // body.data.key.remoteJid, body.data.messageType, body.data.message.conversation
+    const n8nBody = {
+      instance_name: instance.instance_name,
+      instance_id: instance.id,
+      agent_id: instance.agent_id,
+      phone_number: instance.phone_number,
+      message: messageText,
+      prompt: prompt,
+      followup_enabled: followupSettings?.enabled ?? false,
+      followup_delay: followupSettings?.delay_type ?? '24h',
+      followup_message: followupSettings?.custom_message ?? '',
+      data: {
+        key: { remoteJid },
+        remoteJid,
+        messageType: messageType || 'conversation',
+        message: {
+          conversation: messageText,
+        },
+        // Keep original payload for debugging / future compatibility
+        raw: payload,
+      },
+    };
 
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        ...payload,
-        instance_name: instance.instance_name,
-        instance_id: instance.id,
-        agent_id: instance.agent_id,
-        phone_number: instance.phone_number,
-        message: messageText,
-        prompt: prompt,
-        // Follow-up settings for n8n workflow
-        followup_enabled: followupSettings?.enabled ?? false,
-        followup_delay: followupSettings?.delay_type ?? '24h',
-        followup_message: followupSettings?.custom_message ?? '',
-      }),
+      body: JSON.stringify(n8nBody),
     });
 
     const raw = await response.text();
@@ -498,6 +523,8 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any) {
       console.log('n8n did not return a reply in the HTTP response; nothing to send back.');
       return;
     }
+
+    const toNumber = remoteJid.split('@')[0];
 
     if (!toNumber) {
       console.log('Could not determine recipient number (remoteJid missing); cannot send reply.');
