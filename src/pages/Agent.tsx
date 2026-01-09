@@ -397,7 +397,7 @@ const Agent = () => {
               </Label>
               <Input
                 id="nome"
-                placeholder="Digite o nome do seu agente..."
+                placeholder="Digite o nome do seu agente (pode até incluir o nome do seu negócio para identificar facilmente)..."
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 maxLength={100}
@@ -416,7 +416,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="quem-eh"
-                placeholder="Descreva quem é seu agente..."
+                placeholder="Exemplo: Você é uma secretária de consultório, um atendente de loja, um assistente comercial ou outro perfil de atendimento..."
                 value={quemEh}
                 onChange={(e) => setQuemEh(e.target.value)}
                 className="min-h-[80px]"
@@ -434,7 +434,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="o-que-faz"
-                placeholder="Explique as atividades e funções que seu agente desempenha..."
+                placeholder="Exemplo: Sua missão é apresentar os serviços/produtos, preços, horários, agendamentos e formas de pagamentos..."
                 value={oQueFaz}
                 onChange={(e) => setOQueFaz(e.target.value)}
                 className="min-h-[80px]"
@@ -452,7 +452,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="objetivo"
-                placeholder="Defina os objetivos principais e metas do seu agente..."
+                placeholder="Exemplo: O seu objetivo é atrair os clientes, fechar vendas, construir..."
                 value={objetivo}
                 onChange={(e) => setObjetivo(e.target.value)}
                 className="min-h-[80px]"
@@ -470,7 +470,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="como-deve-responder"
-                placeholder="Defina o tom e estilo de comunicação..."
+                placeholder="Exemplo: O tom de comunicação deve ser mais responsável; ou então mais divertido; informal; tente adaptar..."
                 value={comoDeveResponder}
                 onChange={(e) => setComoDeveResponder(e.target.value)}
                 className="min-h-[80px]"
@@ -495,7 +495,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="instrucoes-agente"
-                placeholder="Digite as instruções principais..."
+                placeholder="Exemplo: As Suas principais responsabilidades como secretária/atendente/vendedor/etc.. incluem: ...aqui você pode colocar tudo e mais alguma coisa..."
                 value={instrucoesAgente}
                 onChange={(e) => setInstrucoesAgente(e.target.value)}
                 className="min-h-[80px]"
@@ -513,7 +513,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="topicos-evitar"
-                placeholder="Liste os tópicos que devem ser evitados..."
+                placeholder="Exemplo: Você deve evitar tópicos como: Política, religião, futebol, nazismo, guerra, fome, violencia..."
                 value={topicosEvitar}
                 onChange={(e) => setTopicosEvitar(e.target.value)}
                 className="min-h-[80px]"
@@ -531,7 +531,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="palavras-evitar"
-                placeholder="Liste as palavras que devem ser evitadas..."
+                placeholder="Exemplo: Você deve evitar essas palavras: Promoção, Desconto de tempo limitado, Garantia de resultado, Ganhe dinheiro, Lucro rápido, Agora mesmo, Clique aqui, Oferta imperdível..."
                 value={palavrasEvitar}
                 onChange={(e) => setPalavrasEvitar(e.target.value)}
                 className="min-h-[80px]"
@@ -549,7 +549,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="links-permitidos"
-                placeholder="Liste os links permitidos..."
+                placeholder="Exemplo: Links Permitidos: https://seusite.com ..."
                 value={linksPermitidos}
                 onChange={(e) => setLinksPermitidos(e.target.value)}
                 className="min-h-[80px]"
@@ -567,7 +567,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="regras-personalizadas"
-                placeholder="Digite regras personalizadas..."
+                placeholder="Exemplo: Sempre verificar se..."
                 value={regrasPersonalizadas}
                 onChange={(e) => setRegrasPersonalizadas(e.target.value)}
                 className="min-h-[80px]"
@@ -596,7 +596,7 @@ const Agent = () => {
               </p>
               <AutoResizeTextarea
                 id="resposta-padrao-erro"
-                placeholder="Digite a resposta padrão de erro..."
+                placeholder="Mensagem que o agente irá entregar em caso de algum erro..."
                 value={respostaPadraoErro}
                 onChange={(e) => setRespostaPadraoErro(e.target.value)}
                 className="min-h-[80px]"
