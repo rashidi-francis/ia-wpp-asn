@@ -489,17 +489,23 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     // Ensure n8n gets a non-empty string for routing/debug, and also receives the full message payload
     // (especially `audioMessage`, which is required for transcription workflows).
     const finalMessageText = messageText || (messageType === 'audioMessage' ? '[Áudio]' : '');
+    
+    // For audio messages, extract the audioMessage object with mediaUrl/base64 for Groq transcription
+    const audioMessageObj = normalizedMessageData?.audioMessage || null;
+    
     const n8nMessagePayload = normalizedMessageData
       ? { ...normalizedMessageData, conversation: finalMessageText }
       : { conversation: finalMessageText };
 
     // n8n workflow body - follow-up is now managed by backend, so we don't need to send followup_* fields
-    const n8nBody = {
+    // For audio messages, we explicitly pass audioMessage at top level so n8n can easily access it for Groq
+    const n8nBody: Record<string, any> = {
       instance_name: instance.instance_name,
       instance_id: instance.id,
       agent_id: instance.agent_id,
       phone_number: instance.phone_number,
       message: finalMessageText,
+      messageType: messageType || 'conversation',
       prompt: prompt,
       data: {
         key: { remoteJid },
@@ -509,6 +515,12 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
         raw: payload,
       },
     };
+
+    // If it's an audio message, add the audioMessage object at top level for easy access in n8n
+    if (audioMessageObj) {
+      n8nBody.audioMessage = audioMessageObj;
+      console.log('Audio message detected, forwarding audioMessage object to n8n:', JSON.stringify(audioMessageObj).substring(0, 200));
+    }
 
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
       method: 'POST',
