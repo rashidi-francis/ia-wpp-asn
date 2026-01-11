@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle, HelpCircle, RefreshCw, Calendar, Image } from "lucide-react";
+import { Loader2, LogOut, Plus, FileText, Shield, Settings, Trash2, User, Users, MessageSquare, Clock, AlertCircle, HelpCircle, RefreshCw, Calendar, Image, Play } from "lucide-react";
 import emailjs from '@emailjs/browser';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ import { SupportFAQDialog } from "@/components/SupportFAQDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CalendarDialog } from "@/components/CalendarDialog";
 import { AgentPhotosDialog } from "@/components/AgentPhotosDialog";
+import { VideoTutorialDialog } from "@/components/VideoTutorialDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,6 +85,7 @@ const Dashboard = () => {
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
+  const [videoTutorialDialogOpen, setVideoTutorialDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -346,6 +348,17 @@ const Dashboard = () => {
                 Admin
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              onClick={() => setVideoTutorialDialogOpen(true)}
+              className="relative overflow-visible animate-neon-pulse border-cyan-400/50 hover:border-cyan-400"
+            >
+              <span className="absolute inset-0 rounded-md animate-neon-glow" />
+              <Play className="mr-2 h-4 w-4 text-cyan-500" />
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent font-semibold">
+                Vídeo Tutorial
+              </span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -791,6 +804,11 @@ const Dashboard = () => {
           />
         </>
       )}
+      
+      <VideoTutorialDialog
+        open={videoTutorialDialogOpen}
+        onOpenChange={setVideoTutorialDialogOpen}
+      />
       <Footer />
     </div>
   );
