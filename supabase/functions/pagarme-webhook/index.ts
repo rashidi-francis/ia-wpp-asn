@@ -8,12 +8,12 @@ const corsHeaders = {
 
 // Plan mapping based on amount (in centavos)
 const planMapping: Record<number, { name: string; billingType: string }> = {
-  5990: { name: 'Básico', billingType: 'monthly' },
-  65800: { name: 'Básico', billingType: 'annual' },
-  17970: { name: 'Avançado', billingType: 'monthly' },
-  197600: { name: 'Avançado', billingType: 'annual' },
-  35940: { name: 'Empresarial', billingType: 'monthly' },
-  395300: { name: 'Empresarial', billingType: 'annual' },
+  8990: { name: 'Básico', billingType: 'monthly' },
+  98800: { name: 'Básico', billingType: 'annual' },
+  26970: { name: 'Avançado', billingType: 'monthly' },
+  295900: { name: 'Avançado', billingType: 'annual' },
+  53940: { name: 'Empresarial', billingType: 'monthly' },
+  593300: { name: 'Empresarial', billingType: 'annual' },
 };
 
 serve(async (req) => {
