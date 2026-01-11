@@ -112,8 +112,9 @@ const Dashboard = () => {
     if (!session?.user) return;
 
     try {
+      // Use maybeSingle() to handle case where profile doesn't exist yet
       const [profileResult, agentsResult, roleResult] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", session.user.id).single(),
+        supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle(),
         supabase.from("agents").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }),
         supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
       ]);
@@ -121,13 +122,37 @@ const Dashboard = () => {
       if (profileResult.error) throw profileResult.error;
       if (agentsResult.error) throw agentsResult.error;
 
-      setProfile(profileResult.data);
+      let profileData = profileResult.data;
+
+      // If profile doesn't exist (e.g., Google OAuth user), create it
+      if (!profileData) {
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: session.user.id,
+            email: session.user.email || '',
+            nome: session.user.user_metadata?.full_name || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Usuário',
+            plano: 'Plano Teste Grátis',
+            celular: session.user.user_metadata?.celular || null,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          throw new Error('Não foi possível criar o perfil. Por favor, tente novamente.');
+        }
+        
+        profileData = newProfile;
+      }
+
+      setProfile(profileData);
       setAgents(agentsResult.data || []);
       setIsAdmin(!!roleResult.data);
 
       // Check plan expiration for paid plans
-      if (profileResult.data.plan_expires_at && profileResult.data.plano !== "Plano Teste Grátis") {
-        const expiresAt = new Date(profileResult.data.plan_expires_at);
+      if (profileData.plan_expires_at && profileData.plano !== "Plano Teste Grátis") {
+        const expiresAt = new Date(profileData.plan_expires_at);
         const now = new Date();
         const diffInDays = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         setDaysUntilExpiration(diffInDays);
@@ -140,7 +165,7 @@ const Dashboard = () => {
 
       // Get plan limits
       const { data: limitsData } = await supabase
-        .rpc("get_plan_limits", { plan_name: profileResult.data.plano });
+        .rpc("get_plan_limits", { plan_name: profileData.plano });
       
       if (limitsData && limitsData.length > 0) {
         setPlanLimits(limitsData[0]);
