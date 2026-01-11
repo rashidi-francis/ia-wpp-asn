@@ -9,9 +9,9 @@ const corsHeaders = {
 
 // Plan pricing in centavos
 const planPricing: Record<string, { monthly: number; annual: number }> = {
-  'Básico': { monthly: 5990, annual: 65800 },
-  'Avançado': { monthly: 17970, annual: 197600 },
-  'Empresarial': { monthly: 35940, annual: 395300 },
+  'Básico': { monthly: 8990, annual: 98800 },
+  'Avançado': { monthly: 26970, annual: 295900 },
+  'Empresarial': { monthly: 53940, annual: 593300 },
 };
 
 serve(async (req) => {
