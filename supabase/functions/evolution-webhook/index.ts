@@ -13,9 +13,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 
-// n8n webhook URL for forwarding WhatsApp messages
-// IMPORTANT: keep this in sync with your n8n Webhook node "Production URL".
-const N8N_MESSAGES_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/5ca49874-447c-46fc-9e4a-3a2bc8f98afd";
+// n8n webhook URL for forwarding WhatsApp messages - loaded from environment variable
+const N8N_MESSAGES_WEBHOOK_URL = Deno.env.get('N8N_MESSAGES_WEBHOOK_URL');
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -520,6 +519,12 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     if (audioMessageObj) {
       n8nBody.audioMessage = audioMessageObj;
       console.log('Audio message detected, forwarding audioMessage object to n8n:', JSON.stringify(audioMessageObj).substring(0, 200));
+    }
+
+    // Validate webhook URL is configured
+    if (!N8N_MESSAGES_WEBHOOK_URL) {
+      console.error('N8N_MESSAGES_WEBHOOK_URL is not configured');
+      return;
     }
 
     const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {

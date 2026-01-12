@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const N8N_WEBHOOK_URL = "https://motionlesstern-n8n.cloudfy.live/webhook/860F070C-FCEA-426D-88FF-774CFA36F3F0";
+const N8N_AGENT_SYNC_WEBHOOK_URL = Deno.env.get('N8N_AGENT_SYNC_WEBHOOK_URL');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -129,8 +129,14 @@ serve(async (req) => {
 
     console.log('Sending payload to n8n:', JSON.stringify(payload, null, 2));
 
+    // Validate webhook URL is configured
+    if (!N8N_AGENT_SYNC_WEBHOOK_URL) {
+      console.error('N8N_AGENT_SYNC_WEBHOOK_URL is not configured');
+      throw new Error('N8N webhook URL not configured');
+    }
+
     // Send to n8n webhook
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    const response = await fetch(N8N_AGENT_SYNC_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
