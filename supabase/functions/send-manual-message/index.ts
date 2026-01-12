@@ -20,6 +20,27 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     
+    // Authenticate user from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { conversation_id, content } = await req.json();
 
     if (!conversation_id || !content) {
@@ -41,6 +62,18 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Conversation not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user owns the agent associated with this conversation
+    if (conversation.agent.user_id !== user.id) {
+      console.error('Authorization failed: user does not own this agent', { 
+        userId: user.id, 
+        agentOwnerId: conversation.agent.user_id 
+      });
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - you do not own this agent' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
