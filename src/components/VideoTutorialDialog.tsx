@@ -40,9 +40,9 @@ export const VideoTutorialDialog = ({ open, onOpenChange }: VideoTutorialDialogP
             </div>
           )}
           <iframe
-            src="https://drive.google.com/file/d/1dpwg1bA-Jp58E5MTcZaW9MO6I0vPl_v2/preview"
+            src="https://www.youtube-nocookie.com/embed/7qQPqLCK5HM?modestbranding=1&rel=0&showinfo=0&fs=1&playsinline=1"
             className="w-full h-full rounded-lg"
-            allow="autoplay; encrypted-media"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             onLoad={() => setIsLoading(false)}
           />
