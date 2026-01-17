@@ -232,6 +232,65 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_whatsapp_instances: {
+        Row: {
+          access_token: string
+          agent_id: string
+          business_account_id: string | null
+          created_at: string
+          display_phone_number: string | null
+          error_message: string | null
+          id: string
+          phone_number: string | null
+          phone_number_id: string
+          status: Database["public"]["Enums"]["meta_whatsapp_status"]
+          updated_at: string
+          verified_name: string | null
+          waba_id: string
+          webhook_verify_token: string
+        }
+        Insert: {
+          access_token: string
+          agent_id: string
+          business_account_id?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          error_message?: string | null
+          id?: string
+          phone_number?: string | null
+          phone_number_id: string
+          status?: Database["public"]["Enums"]["meta_whatsapp_status"]
+          updated_at?: string
+          verified_name?: string | null
+          waba_id: string
+          webhook_verify_token?: string
+        }
+        Update: {
+          access_token?: string
+          agent_id?: string
+          business_account_id?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          error_message?: string | null
+          id?: string
+          phone_number?: string | null
+          phone_number_id?: string
+          status?: Database["public"]["Enums"]["meta_whatsapp_status"]
+          updated_at?: string
+          verified_name?: string | null
+          waba_id?: string
+          webhook_verify_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_whatsapp_instances_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -572,6 +631,11 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      meta_whatsapp_status:
+        | "disconnected"
+        | "connecting"
+        | "connected"
+        | "error"
       plan_type: "Básico" | "Avançado" | "Empresarial" | "Plano Teste Grátis"
       whatsapp_instance_status:
         | "disconnected"
@@ -706,6 +770,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      meta_whatsapp_status: [
+        "disconnected",
+        "connecting",
+        "connected",
+        "error",
+      ],
       plan_type: ["Básico", "Avançado", "Empresarial", "Plano Teste Grátis"],
       whatsapp_instance_status: [
         "disconnected",
