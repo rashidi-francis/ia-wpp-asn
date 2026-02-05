@@ -55,8 +55,9 @@ export function FollowUpDialog({ open, onOpenChange, agentId }: FollowUpDialogPr
             </p>
             <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-blue-700 dark:text-blue-300">
-                🚀 <strong>Em breve:</strong> Em algumas semanas, novos recursos de reengajamento serão disponibilizados. 
-                Será possível configurar para a IA disparar uma mensagem automática para leads que pararam de responder após um período configurável.
+                ⏰ <strong>Reengajamento Automático:</strong> Quando o cliente ficar <strong>12 horas sem responder</strong> após a primeira interação, 
+                a IA enviará automaticamente uma mensagem de acompanhamento. As mensagens são enviadas apenas em <strong>horário comercial (8h às 18h)</strong>, 
+                para não incomodar o cliente em horários inapropriados.
               </p>
             </div>
           </div>

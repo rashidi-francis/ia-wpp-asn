@@ -485,7 +485,7 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
         </CardContent>
         <CardFooter className="flex-col items-start pt-4 border-t border-border/50 bg-muted/30">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>Nota:</strong> A conexão via Evolution QR é uma versão simplificada e rápida, porém permite que você tenha gratuitamente em média apenas 300 interações de conversas* (que já é muito dependendo do nicho). Quando esgotarem suas interações o WhatsApp poderá deslogar, onde você pode: criar novo agente, copiar as instruções para poder logar novamente nessa mesma versão simplificada, ou: logar usando a API oficial da META, que se encontra logo aqui abaixo:
+           <strong>Nota:</strong> A conexão via Evolution QR é uma versão simplificada e rápida, porém permite que você tenha gratuitamente em média apenas 300 interações de conversas* (que já é muito dependendo do nicho). Quando esgotarem suas interações o WhatsApp, você vai perceber pois o seu whatsapp vai parar de responder as mensagens dos clientes, daí que para resolver, você deverá nessa mesma página clicar em deslogar whatsapp &gt; Depois clicar em "remover conexão (isso vai fazer com que essa instancia de whatsapp seja completamente eliminada), daí você vai poder logar novamente nessa mesma versão simplificada e pronto, resolvido! Caso você deseje conectar o WABA (conta de whatsapp business da Meta): logar usando a API oficial da META, que se encontra logo aqui abaixo:
           </p>
         </CardFooter>
       </Card>
