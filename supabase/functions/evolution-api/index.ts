@@ -153,6 +153,9 @@ serve(async (req) => {
       case 'delete_instance':
         result = await deleteInstance(supabase, agentId, instanceName);
         break;
+      case 'reconfigure_webhook':
+        result = await reconfigureWebhook(instanceName);
+        break;
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -513,4 +516,47 @@ async function deleteInstance(supabase: any, agentId: string, instanceName: stri
     .eq('agent_id', agentId);
 
   return { success: true };
+}
+
+async function reconfigureWebhook(instanceName: string) {
+  console.log(`Reconfiguring webhook for instance: ${instanceName}`);
+  const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
+  
+  try {
+    const webhookResponse = await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY!,
+      },
+      body: JSON.stringify({
+        webhook: {
+          enabled: true,
+          url: webhookUrl,
+          webhookByEvents: false,
+          webhookBase64: true,
+          events: [
+            "CONNECTION_UPDATE",
+            "QRCODE_UPDATED",
+            "MESSAGES_UPSERT"
+          ]
+        }
+      }),
+    });
+
+    const webhookData = await webhookResponse.json();
+    console.log('Evolution API webhook reconfiguration response:', JSON.stringify(webhookData));
+    
+    return { 
+      success: true, 
+      webhookUrl,
+      response: webhookData
+    };
+  } catch (e) {
+    console.error('Failed to reconfigure webhook:', e);
+    return { 
+      success: false, 
+      error: e instanceof Error ? e.message : 'Unknown error'
+    };
+  }
 }

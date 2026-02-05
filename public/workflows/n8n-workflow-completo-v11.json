@@ -1,5 +1,5 @@
  {
-   "name": "Agente Robusto COMPLETO v10 - Follow-up, Audio, Vision, Calendar, Photos",
+   "name": "Agente Robusto COMPLETO v11 - Follow-up, Audio, Vision, Calendar, Photos (Fix)",
    "nodes": [
      {
        "parameters": {
@@ -282,25 +282,28 @@
      },
      {
        "parameters": {
-         "resource": "media-api",
-         "instanceName": "={{ $('Coleta').item.json.instance_name }}",
-         "remoteJid": "={{ $('Coleta').item.json.telefone }}",
-         "mediaType": "image",
-         "mediaurl": "={{ $json.item }}",
-         "fileName": "imagem.jpg",
-         "options_message": {}
-       },
-       "type": "n8n-nodes-evolution-api.evolutionApi",
-       "typeVersion": 1,
+          "method": "POST",
+          "url": "=https://motionlesstern-evo.cloudfy.live/message/sendMedia/{{ $('Coleta').item.json.instance_name }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"number\": \"{{ $('Coleta').item.json.telefone.replace('@s.whatsapp.net', '').replace('@c.us', '') }}\",\n  \"mediatype\": \"image\",\n  \"media\": \"{{ $json.item }}\",\n  \"fileName\": \"foto.jpg\"\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
        "position": [5664, 1700],
        "id": "send-photo-001",
-       "name": "Envia Foto ao WhatsApp",
-       "credentials": {
-         "evolutionApi": {
-           "id": "few8p7I2K9NB95wi",
-           "name": "evolution_cloudfy"
-         }
-       }
+        "name": "Envia Foto ao WhatsApp",
+        "notesInFlow": true,
+        "notes": "IMPORTANTE: Configure 'HTTP Header Auth' credential com Name=apikey e Value=sua_api_key_evolution",
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "",
+            "name": "evolution_api_key"
+          }
+        }
      },
      {
        "parameters": {
