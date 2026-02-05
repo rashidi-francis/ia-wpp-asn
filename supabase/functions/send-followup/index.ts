@@ -11,10 +11,34 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 
+// Check if current time is within business hours (8h-18h Brazil time, weekdays only)
+function isBusinessHours(): { isValid: boolean; reason: string; currentHour: number } {
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  // UTC-3 for Brazil (São Paulo)
+  const brazilHour = (utcHour - 3 + 24) % 24;
+  const dayOfWeek = now.getUTCDay();
+  
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+  const isWithinHours = brazilHour >= 8 && brazilHour < 18;
+  
+  if (!isWeekday) {
+    return { isValid: false, reason: 'Weekend', currentHour: brazilHour };
+  }
+  if (!isWithinHours) {
+    return { isValid: false, reason: 'Outside business hours (8h-18h)', currentHour: brazilHour };
+  }
+  
+  return { isValid: true, reason: 'OK', currentHour: brazilHour };
+}
+
 // Convert delay_type to milliseconds
 function getDelayMs(delayType: string): number {
   switch (delayType) {
     case '30min': return 30 * 60 * 1000;
+    case '1h': return 60 * 60 * 1000;
+    case '6h': return 6 * 60 * 60 * 1000;
+    case '12h': return 12 * 60 * 60 * 1000;
     case '24h': return 24 * 60 * 60 * 1000;
     case '3d': return 3 * 24 * 60 * 60 * 1000;
     default: return 24 * 60 * 60 * 1000;
@@ -44,6 +68,24 @@ serve(async (req) => {
     
     console.log('=== FOLLOW-UP JOB STARTED ===');
     console.log('Current time:', now.toISOString());
+
+    // Check business hours first (8h-18h Brazil time, weekdays only)
+    const businessHoursCheck = isBusinessHours();
+    console.log(`Business hours check: ${JSON.stringify(businessHoursCheck)}`);
+    
+    if (!businessHoursCheck.isValid) {
+      console.log(`Skipping follow-ups: ${businessHoursCheck.reason} (current Brazil hour: ${businessHoursCheck.currentHour})`);
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: `Follow-ups skipped: ${businessHoursCheck.reason}`,
+        skipped: true,
+        reason: businessHoursCheck.reason,
+        currentBrazilHour: businessHoursCheck.currentHour,
+        processed: 0
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Find all conversations eligible for follow-up
     // Criteria:
