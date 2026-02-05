@@ -442,6 +442,36 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
     console.log('Follow-up settings:', JSON.stringify(followupSettings));
 
+    // Fetch calendar settings for this agent
+    const { data: calendarSettings, error: calendarError } = await supabase
+      .from('agent_calendar_settings')
+      .select('*')
+      .eq('agent_id', instance.agent_id)
+      .maybeSingle();
+
+    if (calendarError) {
+      console.error('Error fetching calendar settings:', calendarError);
+    }
+
+    console.log('Calendar settings:', JSON.stringify(calendarSettings ? { enabled: calendarSettings.enabled, hasToken: !!calendarSettings.google_refresh_token } : null));
+
+    // Fetch agent photos
+    const { data: agentPhotos, error: photosError } = await supabase
+      .from('agent_photos')
+      .select('url, description')
+      .eq('agent_id', instance.agent_id);
+
+    if (photosError) {
+      console.error('Error fetching agent photos:', photosError);
+    }
+
+    // Format photos for n8n (JSON array of photo objects)
+    const photosJson = agentPhotos && agentPhotos.length > 0
+      ? JSON.stringify(agentPhotos.map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
+      : '[]';
+
+    console.log('Agent photos count:', agentPhotos?.length || 0);
+
     // Build the concatenated prompt from all agent instruction fields
     const prompt = agent ? buildSystemMessage(agent) : '';
 
@@ -506,6 +536,15 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       message: finalMessageText,
       messageType: messageType || 'conversation',
       prompt: prompt,
+      // Photos for agent to send
+      agent_photos: photosJson,
+      // Calendar integration
+      calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
+      calendar_refresh_token: calendarSettings?.google_refresh_token || '',
+      // Follow-up settings
+      followup_enabled: followupSettings?.enabled ? 'true' : 'false',
+      followup_delay: followupSettings?.delay_type || '12h',
+      followup_message: followupSettings?.custom_message || 'Olá! Vi que você não avançou ainda. Ficou com alguma dúvida? Há algo que eu possa fazer por você?',
       data: {
         key: { remoteJid },
         remoteJid,
@@ -514,6 +553,19 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
         raw: payload,
       },
     };
+
+    // Add image URL if it's an image message
+    if (messageType === 'imageMessage' && normalizedMessageData?.imageMessage?.url) {
+      n8nBody.imageUrl = normalizedMessageData.imageMessage.url;
+      console.log('Image message detected, forwarding image URL to n8n');
+    }
+
+    // Add document URL if it's a document message
+    if (messageType === 'documentMessage' && normalizedMessageData?.documentMessage?.url) {
+      n8nBody.documentUrl = normalizedMessageData.documentMessage.url;
+      n8nBody.documentName = normalizedMessageData.documentMessage.fileName || 'document.pdf';
+      console.log('Document message detected, forwarding document URL to n8n');
+    }
 
     // If it's an audio message, add the audioMessage object at top level for easy access in n8n
     if (audioMessageObj) {
