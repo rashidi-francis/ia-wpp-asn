@@ -41,37 +41,49 @@ async function generateSequentialInstanceName(supabase: any): Promise<string> {
 }
 
 // Helper to fetch QR code with retries
-async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 8): Promise<string | null> {
+async function fetchQRCodeWithRetries(instanceName: string, maxRetries = 10): Promise<string | null> {
   // Initial wait to let Evolution API initialize the instance
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     console.log(`Fetching QR code attempt ${attempt + 1} for ${instanceName}`);
     
-    // Try the connect endpoint
-    const connectResponse = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
-      method: 'GET',
-      headers: {
-        'apikey': EVOLUTION_API_KEY!,
-      },
-    });
-    
-    const connectData = await connectResponse.json();
-    console.log(`Connect response attempt ${attempt + 1}:`, JSON.stringify(connectData));
-    
-    // Check all possible paths for base64 QR code
-    const base64 = connectData.base64 || 
-                   connectData.qrcode?.base64 || 
-                   connectData.code;
-    
-    if (base64 && typeof base64 === 'string' && base64.length > 100) {
-      console.log('Found QR code base64!');
-      return base64;
+    try {
+      // Try the connect endpoint
+      const connectResponse = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
+        method: 'GET',
+        headers: {
+          'apikey': EVOLUTION_API_KEY!,
+        },
+      });
+      
+      const contentType = connectResponse.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await connectResponse.text();
+        console.error(`Non-JSON response (${contentType}):`, text.substring(0, 200));
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        continue;
+      }
+      
+      const connectData = await connectResponse.json();
+      console.log(`Connect response attempt ${attempt + 1}:`, JSON.stringify(connectData).substring(0, 500));
+      
+      // Check all possible paths for base64 QR code
+      const base64 = connectData.base64 || 
+                     connectData.qrcode?.base64 || 
+                     connectData.code;
+      
+      if (base64 && typeof base64 === 'string' && base64.length > 100) {
+        console.log('Found QR code base64!');
+        return base64;
+      }
+    } catch (e) {
+      console.error(`QR fetch attempt ${attempt + 1} error:`, e);
     }
     
     // Wait and retry - increasing delay
     console.log('QR not ready yet, waiting...');
-    await new Promise(resolve => setTimeout(resolve, 2000 + (attempt * 1000)));
+    await new Promise(resolve => setTimeout(resolve, 2500 + (attempt * 1500)));
   }
   
   return null;
@@ -259,7 +271,7 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
   
   if (!qrBase64) {
     console.log('No QR in create response, fetching with retries...');
-    qrBase64 = await fetchQRCodeWithRetries(instanceName, 2);
+    qrBase64 = await fetchQRCodeWithRetries(instanceName, 6);
   }
 
   // Save to database
@@ -343,10 +355,33 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
     if (!createResponse.ok) {
       throw new Error('Failed to create instance');
     }
+    
+    // Configure webhook for recreated instance
+    const webhookUrl = `${SUPABASE_URL}/functions/v1/evolution-webhook`;
+    try {
+      await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': EVOLUTION_API_KEY!,
+        },
+        body: JSON.stringify({
+          webhook: {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: false,
+            webhookBase64: true,
+            events: ["CONNECTION_UPDATE", "QRCODE_UPDATED", "MESSAGES_UPSERT"]
+          }
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to configure webhook on recreate:', e);
+    }
   }
   
   // Now fetch QR code with retries
-  const qrBase64 = await fetchQRCodeWithRetries(instanceName, 3);
+  const qrBase64 = await fetchQRCodeWithRetries(instanceName, 8);
   
   if (qrBase64) {
     // Update database with QR code
