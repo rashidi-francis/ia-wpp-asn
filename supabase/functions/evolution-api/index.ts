@@ -486,6 +486,15 @@ async function getInstanceStatus(supabase: any, agentId: string, instanceName: s
   if (status === 'connected') {
     updateData.qr_code = null;
     updateData.qr_code_expires_at = null;
+    
+    // Auto-reconfigure webhook when instance is connected to ensure messages arrive
+    console.log('Instance connected, auto-reconfiguring webhook...');
+    try {
+      await reconfigureWebhook(instanceName);
+      console.log('Webhook auto-reconfigured successfully');
+    } catch (e) {
+      console.error('Failed to auto-reconfigure webhook:', e);
+    }
   }
 
   await supabase
