@@ -119,6 +119,7 @@ export type Database = {
           agent_id: string
           created_at: string
           description: string | null
+          file_type: string
           id: string
           url: string
         }
@@ -126,6 +127,7 @@ export type Database = {
           agent_id: string
           created_at?: string
           description?: string | null
+          file_type?: string
           id?: string
           url: string
         }
@@ -133,6 +135,7 @@ export type Database = {
           agent_id?: string
           created_at?: string
           description?: string | null
+          file_type?: string
           id?: string
           url?: string
         }

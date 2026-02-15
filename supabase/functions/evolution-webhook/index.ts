@@ -173,9 +173,15 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
 // Convert delay_type to milliseconds
 function getDelayMs(delayType: string): number {
   switch (delayType) {
+    case '10min': return 10 * 60 * 1000;
     case '30min': return 30 * 60 * 1000;
+    case '1h': return 60 * 60 * 1000;
+    case '3h': return 3 * 60 * 60 * 1000;
+    case '6h': return 6 * 60 * 60 * 1000;
+    case '12h': return 12 * 60 * 60 * 1000;
     case '24h': return 24 * 60 * 60 * 1000;
     case '3d': return 3 * 24 * 60 * 60 * 1000;
+    case '5d': return 5 * 24 * 60 * 60 * 1000;
     default: return 24 * 60 * 60 * 1000;
   }
 }
@@ -465,9 +471,25 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       console.error('Error fetching agent photos:', photosError);
     }
 
-    // Format photos for n8n (JSON array of photo objects)
+    // Fetch agent PDFs
+    const { data: agentPdfs, error: pdfsError } = await supabase
+      .from('agent_photos')
+      .select('url, description')
+      .eq('agent_id', instance.agent_id)
+      .eq('file_type', 'pdf');
+
+    if (pdfsError) {
+      console.error('Error fetching agent PDFs:', pdfsError);
+    }
+
+    // Format photos for n8n (JSON array of photo objects) - only images
     const photosJson = agentPhotos && agentPhotos.length > 0
-      ? JSON.stringify(agentPhotos.map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
+      ? JSON.stringify(agentPhotos.filter((p: any) => !p.file_type || p.file_type === 'image').map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
+      : '[]';
+
+    // Format PDFs for n8n
+    const pdfsJson = agentPdfs && agentPdfs.length > 0
+      ? JSON.stringify(agentPdfs.map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
       : '[]';
 
     console.log('Agent photos count:', agentPhotos?.length || 0);
@@ -536,8 +558,9 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       message: finalMessageText,
       messageType: messageType || 'conversation',
       prompt: prompt,
-      // Photos for agent to send
+      // Photos and PDFs for agent to send
       agent_photos: photosJson,
+      agent_pdfs: pdfsJson,
       // Calendar integration
       calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
       calendar_refresh_token: calendarSettings?.google_refresh_token || '',

@@ -35,12 +35,15 @@ function isBusinessHours(): { isValid: boolean; reason: string; currentHour: num
 // Convert delay_type to milliseconds
 function getDelayMs(delayType: string): number {
   switch (delayType) {
+    case '10min': return 10 * 60 * 1000;
     case '30min': return 30 * 60 * 1000;
     case '1h': return 60 * 60 * 1000;
+    case '3h': return 3 * 60 * 60 * 1000;
     case '6h': return 6 * 60 * 60 * 1000;
     case '12h': return 12 * 60 * 60 * 1000;
     case '24h': return 24 * 60 * 60 * 1000;
     case '3d': return 3 * 24 * 60 * 60 * 1000;
+    case '5d': return 5 * 24 * 60 * 60 * 1000;
     default: return 24 * 60 * 60 * 1000;
   }
 }

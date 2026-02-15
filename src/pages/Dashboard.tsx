@@ -579,7 +579,7 @@ const Dashboard = () => {
                             }}
                           >
                             <Image className="mr-2 h-4 w-4" />
-                            Fotos
+                            Fotos e PDFs
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => navigate(`/agent/${agent.id}/chats`)}
