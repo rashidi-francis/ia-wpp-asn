@@ -24,9 +24,29 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const payload = await req.json();
-    
-    console.log('Webhook received:', JSON.stringify(payload));
+
+    // Handle requests without body (health checks, GET requests)
+    const bodyText = await req.text();
+    if (!bodyText || bodyText.trim() === '') {
+      console.log('Empty body received - likely a health check');
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(bodyText);
+    } catch (parseErr) {
+      console.error('Failed to parse JSON body:', bodyText.substring(0, 200));
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Log the raw event name to debug what Evolution API is sending
+    console.log('Webhook received - event:', payload?.event, '| instance:', payload?.instance);
+    console.log('Full payload keys:', Object.keys(payload || {}));
 
     const { event, instance, data } = payload;
 
