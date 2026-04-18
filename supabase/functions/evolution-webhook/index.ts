@@ -540,49 +540,52 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       if (messageText) break;
     }
 
-    if (!remoteJid) {
-      console.error('Could not extract remoteJid from payload; skipping n8n forward');
-      return;
-    }
-
     // Ensure n8n gets a non-empty string for routing/debug, and also receives the full message payload
     // (especially `audioMessage`, which is required for transcription workflows).
     const finalMessageText = messageText || (messageType === 'audioMessage' ? '[Áudio]' : '');
-    
+
     // For audio messages, extract the audioMessage object with mediaUrl/base64 for Groq transcription
     const audioMessageObj = normalizedMessageData?.audioMessage || null;
-    
+
     const n8nMessagePayload = normalizedMessageData
       ? { ...normalizedMessageData, conversation: finalMessageText }
       : { conversation: finalMessageText };
 
-    // n8n workflow body - follow-up is now managed by backend, so we don't need to send followup_* fields
-    // For audio messages, we explicitly pass audioMessage at top level so n8n can easily access it for Groq
+    // ===== HYBRID PAYLOAD =====
+    // Top-level: raw Evolution API event (event/instance/data) — Fluxo-1 reads it as-is.
+    // Top-level extras: flattened system fields (agent_id, prompt, calendar_*, etc.) for n8n switch logic.
+    // The Follow-up workflow reads whatsapp_conversations directly and is NOT triggered from here.
     const n8nBody: Record<string, any> = {
-      instance_name: instance.instance_name,
-      instance_id: instance.id,
-      agent_id: instance.agent_id,
-      phone_number: instance.phone_number,
-      message: finalMessageText,
-      messageType: messageType || 'conversation',
-      prompt: prompt,
-      // Photos and PDFs for agent to send
-      agent_photos: photosJson,
-      agent_pdfs: pdfsJson,
-      // Calendar integration
-      calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
-      calendar_refresh_token: calendarSettings?.google_refresh_token || '',
-      // Follow-up settings
-      followup_enabled: followupSettings?.enabled ? 'true' : 'false',
-      followup_delay: followupSettings?.delay_type || '12h',
-      followup_message: followupSettings?.custom_message || 'Olá! Vi que você não avançou ainda. Ficou com alguma dúvida? Há algo que eu possa fazer por você?',
+      // ---------- Raw Evolution payload (Fluxo-1 compatibility) ----------
+      event: payload.event,
+      instance: payload.instance,
       data: {
-        key: { remoteJid },
+        ...(payload.data || {}),
+        key: { remoteJid, ...(payload.data?.key || {}) },
         remoteJid,
         messageType: messageType || 'conversation',
         message: n8nMessagePayload,
         raw: payload,
       },
+
+      // ---------- Flattened system fields ----------
+      instance_name: instance.instance_name,
+      instance_id: instance.id,
+      agent_id: instance.agent_id,
+      phone_number: instance.phone_number,
+      remoteJid,
+      message: finalMessageText,
+      messageType: messageType || 'conversation',
+      prompt: prompt,
+
+      // Assets
+      agent_photos: photosJson,
+      agent_pdfs: pdfsJson,
+
+      // Calendar (multi-tenant: per-agent refresh token + calendar id)
+      calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
+      calendar_refresh_token: calendarSettings?.google_refresh_token || '',
+      calendar_id: calendarSettings?.google_calendar_id || 'primary',
     };
 
     // Add image URL if it's an image message
@@ -625,7 +628,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       return;
     }
 
-    console.log('Message forwarded to n8n successfully with prompt');
+    console.log('Message forwarded to n8n successfully (hybrid payload)');
 
     // If n8n returns a reply in the HTTP response, send it back to WhatsApp via Evolution
     let replyText: string | null = null;
@@ -659,35 +662,20 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
     await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
 
-    // ===== FOLLOW-UP LOGIC: AI RESPONDED =====
-    // After AI responds, schedule follow-up.
-    // IMPORTANT: if settings row doesn't exist yet, default to enabled + 30min (prevents silent failures).
-    const followupEnabled = followupSettings?.enabled ?? true;
-
-    if (conversationId && followupEnabled) {
-      const delayType = followupSettings?.delay_type || '30min';
-      const delayMs = getDelayMs(delayType);
-      const followupDueAt = new Date(Date.now() + delayMs);
-
-      console.log(
-        `Scheduling follow-up for conversation ${conversationId} at ${followupDueAt.toISOString()} (delay_type=${delayType})`,
-      );
-
+    // ===== AI RESPONDED =====
+    // Update conversation state so the n8n Follow-up workflow can decide
+    // whether/when to engage. Scheduling itself is owned by n8n now.
+    if (conversationId) {
       const { error: updateError } = await supabase
         .from('whatsapp_conversations')
         .update({
           last_message_from: 'ai',
           status: 'open',
-          followup_due_at: followupDueAt.toISOString(),
-          followup_sent: false,
-          followup_count: 0,
         })
         .eq('id', conversationId);
 
       if (updateError) {
-        console.error('Error scheduling follow-up:', updateError);
-      } else {
-        console.log(`Follow-up scheduled successfully for ${followupDueAt.toISOString()}`);
+        console.error('Error updating conversation after AI reply:', updateError);
       }
     }
 
