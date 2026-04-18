@@ -443,18 +443,9 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       console.error('Error fetching agent for prompt:', agentError);
     }
 
-    // Fetch follow-up settings for this agent
-    const { data: followupSettings, error: followupError } = await supabase
-      .from('agent_followup_settings')
-      .select('*')
-      .eq('agent_id', instance.agent_id)
-      .maybeSingle();
+    // Follow-up: managed entirely by the n8n Follow-up workflow.
+    // n8n reads agent_followup_settings + whatsapp_conversations directly from the DB.
 
-    if (followupError) {
-      console.error('Error fetching follow-up settings:', followupError);
-    }
-
-    console.log('Follow-up settings:', JSON.stringify(followupSettings));
 
     // Fetch calendar settings for this agent
     const { data: calendarSettings, error: calendarError } = await supabase
