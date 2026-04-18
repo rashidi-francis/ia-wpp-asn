@@ -190,21 +190,9 @@ async function handleQRCodeUpdate(supabase: any, instance: any, data: any) {
   }
 }
 
-// Convert delay_type to milliseconds
-function getDelayMs(delayType: string): number {
-  switch (delayType) {
-    case '10min': return 10 * 60 * 1000;
-    case '30min': return 30 * 60 * 1000;
-    case '1h': return 60 * 60 * 1000;
-    case '3h': return 3 * 60 * 60 * 1000;
-    case '6h': return 6 * 60 * 60 * 1000;
-    case '12h': return 12 * 60 * 60 * 1000;
-    case '24h': return 24 * 60 * 60 * 1000;
-    case '3d': return 3 * 24 * 60 * 60 * 1000;
-    case '5d': return 5 * 24 * 60 * 60 * 1000;
-    default: return 24 * 60 * 60 * 1000;
-  }
-}
+// Follow-up scheduling is now handled by the n8n Follow-up workflow.
+// The Supabase backend only tracks lead/AI activity in whatsapp_conversations
+// (last_message_from / status) so n8n can read state and decide when/whether to send.
 
 async function saveMessageToDatabase(supabase: any, instance: any, data: any): Promise<{ shouldForward: boolean; agentEnabled: boolean; conversationId: string | null } | null> {
   try {
