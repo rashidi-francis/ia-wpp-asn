@@ -31,6 +31,8 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [status, setStatus] = useState<CalendarStatus>({
     connected: false,
     enabled: false,
