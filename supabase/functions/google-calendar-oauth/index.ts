@@ -30,24 +30,24 @@ serve(async (req) => {
   const path = url.pathname.split('/').pop();
 
   try {
-    // Route: /google-calendar-oauth/auth - Start OAuth flow
-    if (path === 'auth' || req.method === 'POST') {
-      return await handleAuthStart(req);
-    }
-    
-    // Route: /google-calendar-oauth/callback - Handle OAuth callback
+    // Route: /google-calendar-oauth/callback - Handle OAuth callback (GET from Google)
     if (path === 'callback') {
       return await handleCallback(req, url);
     }
 
-    // Route: /google-calendar-oauth/status - Check connection status
+    // Route: /google-calendar-oauth/status - Check connection status (GET)
     if (path === 'status') {
       return await handleStatus(req);
     }
 
-    // Route: /google-calendar-oauth/disconnect - Disconnect calendar
+    // Route: /google-calendar-oauth/disconnect - Disconnect calendar (POST)
     if (path === 'disconnect') {
       return await handleDisconnect(req);
+    }
+
+    // Route: /google-calendar-oauth or /google-calendar-oauth/auth - Start OAuth flow (POST)
+    if (path === 'auth' || path === 'google-calendar-oauth' || req.method === 'POST') {
+      return await handleAuthStart(req);
     }
 
     return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {

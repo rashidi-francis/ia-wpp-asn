@@ -1,0 +1,1 @@
+UPDATE public.agent_calendar_settings SET enabled = false, google_refresh_token = NULL, google_calendar_id = NULL, updated_at = now() WHERE agent_id = 'ef72adec-9929-4199-a490-f30b0be1e45e';
