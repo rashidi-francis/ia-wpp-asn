@@ -388,12 +388,6 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
                   <span className="font-medium text-foreground">Criar, excluir ou alterar configurações de calendários</span> (a permissão é restrita a eventos, não à estrutura da sua agenda)
                 </p>
               </div>
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-muted-foreground">
-                  Compartilhar dados confidenciais — ao informar horário ocupado, a IA dirá apenas <span className="font-medium text-foreground">"horário indisponível"</span>, sem revelar detalhes do compromisso
-                </p>
-              </div>
             </div>
 
             {/* Aviso de revogação */}
