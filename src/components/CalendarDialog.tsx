@@ -368,7 +368,7 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
               <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                 <CalendarPlus className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">Criar novos eventos</span> quando seus clientes agendarem pela conversa
+                  <span className="font-medium text-foreground">Criar, atualizar e remover eventos</span> referentes aos agendamentos feitos pelos seus clientes via conversa (necessário para remarcar ou cancelar quando o cliente pedir)
                 </p>
               </div>
             </div>
@@ -379,13 +379,13 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  Modificar, alterar ou <span className="font-medium text-foreground">excluir eventos existentes</span> da sua agenda
+                  Acessar <span className="font-medium text-foreground">outros dados da sua conta Google</span> (e-mails, contatos, Drive, fotos, etc.)
                 </p>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  Acessar <span className="font-medium text-foreground">outros dados da sua conta Google</span> (e-mails, contatos, drive, etc.)
+                  <span className="font-medium text-foreground">Criar, excluir ou alterar configurações de calendários</span> (a permissão é restrita a eventos, não à estrutura da sua agenda)
                 </p>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
