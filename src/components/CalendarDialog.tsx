@@ -10,9 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, CheckCircle2, XCircle, LogOut } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle, LogOut, ShieldCheck, Eye, CalendarPlus, Ban } from "lucide-react";
 
 interface CalendarDialogProps {
   open: boolean;
@@ -31,6 +32,8 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [status, setStatus] = useState<CalendarStatus>({
     connected: false,
     enabled: false,
@@ -100,7 +103,14 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
+    // Abrir popup de consent antes de redirecionar para Google
+    setConsentAccepted(false);
+    setShowConsent(true);
+  };
+
+  const handleConfirmConnect = async () => {
+    if (!consentAccepted) return;
     setConnecting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -138,6 +148,7 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
         description: error.message,
       });
       setConnecting(false);
+      setShowConsent(false);
     }
   };
 
@@ -325,6 +336,123 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Consent Dialog - Compliance Google */}
+      <Dialog open={showConsent} onOpenChange={(open) => {
+        if (!connecting) {
+          setShowConsent(open);
+          if (!open) setConsentAccepted(false);
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Permissões solicitadas
+            </DialogTitle>
+            <DialogDescription>
+              Antes de conectar sua agenda Google, leia atentamente quais permissões a IA terá:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* O que a IA PODE fazer */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">A IA poderá:</p>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <Eye className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Ler eventos da agenda</span> para verificar disponibilidade de horários
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <CalendarPlus className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Criar novos eventos</span> quando seus clientes agendarem pela conversa
+                </p>
+              </div>
+            </div>
+
+            {/* O que a IA NÃO pode fazer */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">A IA NÃO poderá:</p>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Modificar, alterar ou <span className="font-medium text-foreground">excluir eventos existentes</span> da sua agenda
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Acessar <span className="font-medium text-foreground">outros dados da sua conta Google</span> (e-mails, contatos, drive, etc.)
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <Ban className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Compartilhar dados confidenciais — ao informar horário ocupado, a IA dirá apenas <span className="font-medium text-foreground">"horário indisponível"</span>, sem revelar detalhes do compromisso
+                </p>
+              </div>
+            </div>
+
+            {/* Aviso de revogação */}
+            <p className="text-xs text-muted-foreground italic">
+              Você pode revogar este acesso a qualquer momento clicando em "Desconectar" nesta tela ou diretamente em sua{" "}
+              <a 
+                href="https://myaccount.google.com/permissions" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                conta Google
+              </a>.
+            </p>
+
+            {/* Checkbox de consentimento */}
+            <div className="flex items-start gap-2 pt-2 border-t">
+              <Checkbox
+                id="consent-checkbox"
+                checked={consentAccepted}
+                onCheckedChange={(checked) => setConsentAccepted(checked === true)}
+                disabled={connecting}
+              />
+              <Label
+                htmlFor="consent-checkbox"
+                className="text-sm leading-tight cursor-pointer"
+              >
+                Eu li e autorizo a IA a ler e criar eventos na minha agenda Google conforme descrito acima.
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConsent(false)}
+              disabled={connecting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmConnect}
+              disabled={!consentAccepted || connecting}
+            >
+              {connecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Redirecionando...
+                </>
+              ) : (
+                <>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Continuar e conectar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
