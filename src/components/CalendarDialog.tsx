@@ -102,7 +102,14 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
+    // Abrir popup de consent antes de redirecionar para Google
+    setConsentAccepted(false);
+    setShowConsent(true);
+  };
+
+  const handleConfirmConnect = async () => {
+    if (!consentAccepted) return;
     setConnecting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -140,6 +147,7 @@ export function CalendarDialog({ open, onOpenChange, agentId }: CalendarDialogPr
         description: error.message,
       });
       setConnecting(false);
+      setShowConsent(false);
     }
   };
 
