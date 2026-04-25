@@ -341,36 +341,40 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 animate-gradient-shift bg-[length:200%_200%]">
       <header className="border-b border-primary/20 bg-card/80 backdrop-blur-xl shadow-lg sticky top-0 z-10 animate-fade-in">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse">
-              <span className="text-lg font-bold text-primary-foreground">AI</span>
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-glow-pulse shrink-0">
+              <span className="text-base sm:text-lg font-bold text-primary-foreground">AI</span>
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Ajudo Seu Negócio IA</h1>
+            <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent truncate">
+              <span className="sm:hidden">ChatASN</span>
+              <span className="hidden sm:inline">Ajudo Seu Negócio IA</span>
+            </h1>
           </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2 items-center shrink-0">
             {isAdmin && (
-              <Button variant="outline" onClick={() => navigate("/admin")}>
-                <Shield className="mr-2 h-4 w-4" />
-                Admin
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin")} className="px-2 sm:px-3">
+                <Shield className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Admin</span>
               </Button>
             )}
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => setVideoTutorialDialogOpen(true)}
-              className="relative overflow-visible animate-neon-pulse border-cyan-400/50 hover:border-cyan-400"
+              className="relative overflow-visible animate-neon-pulse border-cyan-400/50 hover:border-cyan-400 px-2 sm:px-3"
             >
               <span className="absolute inset-0 rounded-md animate-neon-glow" />
-              <Play className="mr-2 h-4 w-4 text-cyan-500" />
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent font-semibold">
+              <Play className="h-4 w-4 text-cyan-500 sm:mr-2" />
+              <span className="hidden sm:inline bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent font-semibold">
                 Vídeo Tutorial
               </span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <User className="mr-2 h-4 w-4" />
-                  Minha Conta
+                <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                  <User className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Minha Conta</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
