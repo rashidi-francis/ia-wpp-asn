@@ -28,10 +28,10 @@ const plans = [
     name: "Plano Teste Grátis",
     monthlyPrice: "GRÁTIS",
     annualPrice: "GRÁTIS",
-    description: "Experimente nossa plataforma gratuitamente por 3 dias.",
+    description: "Experimente nossa plataforma gratuitamente por 24 horas.",
     features: [
       "1 Agente Inteligente",
-      "Teste por 3 dias",
+      "Teste por 24 horas",
       "Acesso a recursos essenciais do ASN Agentes",
       "Interações Ilimitadas no WhatsApp",
       "Integração com WhatsApp via QR Code",
