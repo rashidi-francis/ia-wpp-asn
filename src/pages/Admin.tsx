@@ -453,11 +453,11 @@ const Admin = () => {
   const getExpirationDisplay = (user: User) => {
     const { plan_expires_at: expiresAt, plano, created_at } = user;
     
-    // Para Plano Teste Grátis, calcular expiração = created_at + 3 dias
+    // Para Plano Teste Grátis, calcular expiração = created_at + 24 horas
     if (plano === "Plano Teste Grátis") {
       const createdDate = new Date(created_at);
-      const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
-      return trialExpiration.toLocaleDateString("pt-BR");
+      const trialExpiration = new Date(createdDate.getTime() + 24 * 60 * 60 * 1000);
+      return trialExpiration.toLocaleString("pt-BR");
     }
     
     // Para planos pagos, verificar se tem data de expiração definida
@@ -481,7 +481,7 @@ const Admin = () => {
   const isTrialExpired = (user: User) => {
     if (user.plano === "Plano Teste Grátis") {
       const createdDate = new Date(user.created_at);
-      const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const trialExpiration = new Date(createdDate.getTime() + 24 * 60 * 60 * 1000);
       return trialExpiration < new Date();
     }
     return false;

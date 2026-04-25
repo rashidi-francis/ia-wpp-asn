@@ -80,6 +80,13 @@ const Dashboard = () => {
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const [planExpirationWarningOpen, setPlanExpirationWarningOpen] = useState(false);
   const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
+  const [, setNowTick] = useState(Date.now());
+
+  // Tick every minute so trial countdown stays accurate
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
   
   // Dialog states for agent settings
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
@@ -427,20 +434,33 @@ const Dashboard = () => {
               {profile?.plano === "Plano Teste Grátis" ? (
                 (() => {
                   const createdDate = new Date(profile.created_at);
-                  const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+                  const trialExpiration = new Date(createdDate.getTime() + 24 * 60 * 60 * 1000);
                   const now = new Date();
-                  const diffInDays = Math.ceil((trialExpiration.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                  const isExpired = diffInDays <= 0;
-                  
+                  const diffInMs = trialExpiration.getTime() - now.getTime();
+                  const diffInHours = Math.ceil(diffInMs / (1000 * 60 * 60));
+                  const diffInMinutes = Math.ceil(diffInMs / (1000 * 60));
+                  const isExpired = diffInMs <= 0;
+
+                  let remainingLabel = '';
+                  if (!isExpired) {
+                    if (diffInHours > 1) {
+                      remainingLabel = `${diffInHours} horas`;
+                    } else if (diffInMinutes > 1) {
+                      remainingLabel = `${diffInMinutes} minutos`;
+                    } else {
+                      remainingLabel = 'menos de 1 minuto';
+                    }
+                  }
+
                   return (
                     <div className={`flex items-center gap-2 text-sm ${
-                      isExpired ? 'text-destructive' : diffInDays <= 2 ? 'text-yellow-600' : 'text-muted-foreground'
+                      isExpired ? 'text-destructive' : diffInHours <= 4 ? 'text-yellow-600' : 'text-muted-foreground'
                     }`}>
                       {isExpired ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                       <span>
-                        {isExpired 
+                        {isExpired
                           ? 'Período de teste expirado - Faça upgrade'
-                          : `Expira em ${trialExpiration.toLocaleDateString('pt-BR')} (${diffInDays} ${diffInDays === 1 ? 'dia' : 'dias'})`
+                          : `Expira em ${trialExpiration.toLocaleDateString('pt-BR')} (${remainingLabel})`
                         }
                       </span>
                     </div>

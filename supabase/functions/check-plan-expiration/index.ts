@@ -55,11 +55,11 @@ serve(async (req) => {
     for (const profile of expiredProfiles || []) {
       let isExpired = false;
 
-      // Check trial plan expiration (3 days from creation)
+      // Check trial plan expiration (24 hours from creation)
       if (profile.plano === 'Plano Teste Grátis') {
         const createdAt = new Date(profile.created_at);
-        const diffInDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffInDays > 3) {
+        const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        if (diffInHours > 24) {
           isExpired = true;
         }
       } 
