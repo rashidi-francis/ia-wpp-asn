@@ -235,6 +235,45 @@ export type Database = {
         }
         Relationships: []
       }
+      followup_logs: {
+        Row: {
+          agent_id: string
+          conversation_id: string
+          created_at: string
+          error_message: string | null
+          followup_index: number
+          id: string
+          message_sent: string | null
+          rescheduled_to: string | null
+          skip_reason: string | null
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          conversation_id: string
+          created_at?: string
+          error_message?: string | null
+          followup_index: number
+          id?: string
+          message_sent?: string | null
+          rescheduled_to?: string | null
+          skip_reason?: string | null
+          status: string
+        }
+        Update: {
+          agent_id?: string
+          conversation_id?: string
+          created_at?: string
+          error_message?: string | null
+          followup_index?: number
+          id?: string
+          message_sent?: string | null
+          rescheduled_to?: string | null
+          skip_reason?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       meta_whatsapp_instances: {
         Row: {
           access_token: string
