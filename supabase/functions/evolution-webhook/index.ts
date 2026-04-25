@@ -639,6 +639,28 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       }
     }
 
+    // Filtra mensagens administrativas/status do n8n que NÃO devem ir pro lead.
+    // Quando o webhook do n8n está em modo "Respond Immediately" ele retorna
+    // strings como "Workflow was started" — isso não é resposta da AI.
+    if (replyText) {
+      const lower = replyText.toLowerCase().trim();
+      const n8nStatusPatterns = [
+        'workflow was started',
+        'workflow has started',
+        'workflow started',
+        'workflow was executed',
+        'workflow executed',
+        'message received',
+        'webhook received',
+        'accepted',
+        'ok',
+      ];
+      if (n8nStatusPatterns.some(p => lower === p || lower.startsWith(p))) {
+        console.log(`Ignoring n8n status response: "${replyText.substring(0, 80)}"`);
+        replyText = null;
+      }
+    }
+
     if (!replyText) {
       console.log('n8n did not return a reply in the HTTP response; nothing to send back.');
       return;
