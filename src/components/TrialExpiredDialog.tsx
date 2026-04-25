@@ -64,7 +64,7 @@ export const TrialExpiredDialog = ({ open, onOpenChange, agentId }: TrialExpired
             </div>
             <DialogDescription className="text-base pt-2 space-y-3">
               <p>
-                O seu período de <strong>Teste Gratuito de 3 dias</strong> na plataforma terminou.
+                O seu período de <strong>Teste Gratuito de 24 horas</strong> na plataforma terminou.
               </p>
               <p>
                 Para continuar a utilizar o seu agente de IA, faça o upgrade para um plano pago.
