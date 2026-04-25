@@ -719,7 +719,9 @@ async function sendTextMessageToEvolution(instanceName: string, number: string, 
 
     console.log(`Sending reply via Evolution API to ${number} (instance: ${instanceName})`);
 
-    const resp = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+    // Sanitiza URL: remove barras finais e o sufixo /manager (que aponta pra UI, não pra API)
+    const cleanUrl = EVOLUTION_API_URL.replace(/\/+$/, '').replace(/\/manager$/i, '');
+    const resp = await fetch(`${cleanUrl}/message/sendText/${instanceName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
