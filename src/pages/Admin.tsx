@@ -481,7 +481,7 @@ const Admin = () => {
   const isTrialExpired = (user: User) => {
     if (user.plano === "Plano Teste Grátis") {
       const createdDate = new Date(user.created_at);
-      const trialExpiration = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const trialExpiration = new Date(createdDate.getTime() + 24 * 60 * 60 * 1000);
       return trialExpiration < new Date();
     }
     return false;
