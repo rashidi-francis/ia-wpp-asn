@@ -149,14 +149,14 @@ const Agent = () => {
 
       setCurrentPlanName(profileData.plano);
 
-      // Verificar se o plano expirou (Plano Teste Grátis + mais de 3 dias) - apenas para não-admins
+      // Verificar se o plano expirou (Plano Teste Grátis + mais de 24 horas) - apenas para não-admins
       if (!userIsAdmin) {
         if (profileData.plano === "Plano Teste Grátis") {
           const createdAt = new Date(profileData.created_at);
           const now = new Date();
-          const diffInDays = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-          
-          if (diffInDays > 3) {
+          const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+
+          if (diffInHours > 24) {
             setShowTrialExpired(true);
             setLoading(false);
             return;
