@@ -80,6 +80,13 @@ const Dashboard = () => {
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const [planExpirationWarningOpen, setPlanExpirationWarningOpen] = useState(false);
   const [daysUntilExpiration, setDaysUntilExpiration] = useState<number | undefined>();
+  const [, setNowTick] = useState(Date.now());
+
+  // Tick every minute so trial countdown stays accurate
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
   
   // Dialog states for agent settings
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
