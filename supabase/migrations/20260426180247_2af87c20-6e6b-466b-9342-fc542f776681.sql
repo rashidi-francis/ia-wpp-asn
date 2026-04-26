@@ -1,0 +1,1 @@
+DELETE FROM public.device_fingerprints WHERE fingerprint = 'lrst2z';
