@@ -88,8 +88,18 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Meta Pixel CompleteRegistration é disparado pelo Google Tag Manager
-  // (lê a flag 'pending_registration_event' do localStorage setada no Login.tsx)
+  // Sinaliza ao Google Tag Manager que o Dashboard carregou.
+  // O GTM verifica a flag 'pending_registration_event' no localStorage
+  // e dispara o Meta Pixel CompleteRegistration apenas no primeiro acesso após cadastro.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).dataLayer = (window as any).dataLayer || [];
+      (window as any).dataLayer.push({
+        event: 'dashboard_loaded',
+        pending_registration: localStorage.getItem('pending_registration_event') === '1',
+      });
+    }
+  }, []);
   
   // Dialog states for agent settings
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
