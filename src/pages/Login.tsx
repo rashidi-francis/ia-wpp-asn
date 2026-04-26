@@ -433,6 +433,7 @@ const Login = () => {
         </div>
       </div>
       <LoginFooter />
+      <VideoTutorialDialog open={showVideoTutorial} onOpenChange={setShowVideoTutorial} />
     </div>
   );
 };
