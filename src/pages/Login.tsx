@@ -34,6 +34,7 @@ const Login = () => {
   const [nome, setNome] = useState("");
   const [celular, setCelular] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showVideoTutorial, setShowVideoTutorial] = useState(false);
 
   useEffect(() => {
     // Meta Pixel PageView event
