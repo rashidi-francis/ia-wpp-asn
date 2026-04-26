@@ -87,6 +87,24 @@ const Dashboard = () => {
     const interval = setInterval(() => setNowTick(Date.now()), 60_000);
     return () => clearInterval(interval);
   }, []);
+
+  // Dispara Meta Pixel CompleteRegistration apenas no primeiro acesso ao Dashboard
+  // após o cadastro (flag setada no Login.tsx ao concluir signUp)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('pending_registration_event') === '1') {
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          (window as any).fbq('track', 'CompleteRegistration', {
+            content_name: 'Cadastro ChatASN',
+            status: 'success',
+          });
+        }
+        localStorage.removeItem('pending_registration_event');
+      }
+    } catch (e) {
+      console.error('Error firing CompleteRegistration:', e);
+    }
+  }, []);
   
   // Dialog states for agent settings
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
