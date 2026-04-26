@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { z } from "zod";
 import { LoginFooter } from "@/components/LoginFooter";
 import InputMask from "react-input-mask";
 import { Separator } from "@/components/ui/separator";
 import { generateFingerprint } from "@/lib/fingerprint";
+import { VideoTutorialDialog } from "@/components/VideoTutorialDialog";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
