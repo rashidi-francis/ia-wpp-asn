@@ -273,6 +273,20 @@ const Login = () => {
                   <path d="M12 3v13.586l-4.293-4.293-1.414 1.414L12 19.414l5.707-5.707-1.414-1.414L12 16.586V3z"/>
                 </svg>
               </div>
+
+              {/* Botão Vídeo Tutorial - chamativo */}
+              <div className="flex justify-center lg:justify-start mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowVideoTutorial(true)}
+                  className="group relative inline-flex items-center gap-3 px-7 py-4 rounded-full bg-gradient-to-r from-[#FF6B6B] via-[#FFC300] to-[#FF6B6B] bg-[length:200%_100%] text-white font-bold text-base lg:text-lg shadow-[0_10px_40px_rgba(255,107,107,0.5)] hover:shadow-[0_15px_50px_rgba(255,195,0,0.6)] hover:scale-105 transition-all duration-300 animate-glow-pulse overflow-hidden"
+                  aria-label="Assistir vídeo tutorial da plataforma"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+                  <PlayCircle className="w-7 h-7 relative z-10 fill-white/20" />
+                  <span className="relative z-10 drop-shadow-md">🎬 Veja como funciona em 1 minuto</span>
+                </button>
+              </div>
             </div>
 
             {/* Card de login */}
