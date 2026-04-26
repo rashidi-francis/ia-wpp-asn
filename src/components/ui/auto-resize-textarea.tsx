@@ -12,10 +12,36 @@ const AutoResizeTextarea = React.forwardRef<
 
   const adjustHeight = React.useCallback(() => {
     const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${textarea.scrollHeight}px`;
+    if (!textarea) return;
+
+    // Preserva a posição de scroll da página e de qualquer container scrollável ancestral
+    // para evitar que o navegador "pule" enquanto o usuário digita no meio do texto.
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const scrollableAncestors: { el: HTMLElement; top: number; left: number }[] = [];
+    let parent = textarea.parentElement;
+    while (parent && parent !== document.body) {
+      const style = window.getComputedStyle(parent);
+      const overflowY = style.overflowY;
+      const overflowX = style.overflowX;
+      if (
+        (overflowY === "auto" || overflowY === "scroll" || overflowX === "auto" || overflowX === "scroll") &&
+        (parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth)
+      ) {
+        scrollableAncestors.push({ el: parent, top: parent.scrollTop, left: parent.scrollLeft });
+      }
+      parent = parent.parentElement;
     }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+
+    // Restaura imediatamente após o reflow
+    window.scrollTo(scrollX, scrollY);
+    scrollableAncestors.forEach(({ el, top, left }) => {
+      el.scrollTop = top;
+      el.scrollLeft = left;
+    });
   }, []);
 
   React.useEffect(() => {
