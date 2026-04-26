@@ -166,12 +166,12 @@ const Login = () => {
             console.error('Error registering fingerprint:', fpRegisterError);
           }
           
-          // Meta Pixel CompleteRegistration event (cadastro)
-          if (typeof window !== 'undefined' && (window as any).fbq) {
-            (window as any).fbq('track', 'CompleteRegistration', {
-              content_name: 'Cadastro ChatASN',
-              status: 'success'
-            });
+          // Marca flag para disparar Meta Pixel CompleteRegistration ao chegar no Dashboard
+          // (garante que só conta como cadastro completo quando o usuário realmente entra na plataforma)
+          try {
+            localStorage.setItem('pending_registration_event', '1');
+          } catch (e) {
+            console.error('Error setting registration flag:', e);
           }
           toast({
             title: "Conta criada com sucesso!",
