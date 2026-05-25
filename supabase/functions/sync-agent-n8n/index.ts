@@ -14,6 +14,7 @@ type AgentMedia = {
   url: string;
   description: string | null;
   mediaType: 'image' | 'document';
+  mediatype: 'image' | 'document';
   fileName: string;
 };
 
@@ -216,6 +217,7 @@ serve(async (req) => {
         url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'imagem-agente', 'jpg')),
         description: file.description || '',
         mediaType: 'image' as const,
+        mediatype: 'image' as const,
         fileName: toSafeFileName(file.description, 'imagem-agente', 'jpg'),
       }));
 
@@ -225,6 +227,7 @@ serve(async (req) => {
         url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'documento-agente', 'pdf')),
         description: file.description || '',
         mediaType: 'document' as const,
+        mediatype: 'document' as const,
         fileName: toSafeFileName(file.description, 'documento-agente', 'pdf'),
       }));
 
