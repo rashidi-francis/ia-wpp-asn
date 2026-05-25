@@ -136,13 +136,15 @@ serve(async (req) => {
         await handleQRCodeUpdate(supabase, whatsappInstance, data);
         break;
       case 'messages.upsert':
-        console.log('Message received for instance:', instance);
+      case 'send.message':
+        console.log(`Message event (${normalizedEvent}) received for instance:`, instance);
         // Save message to database and get conversation info
         const conversationInfo = await saveMessageToDatabase(supabase, whatsappInstance, data);
-        // Only forward to n8n if agent is enabled for this conversation and message is from user
-        if (conversationInfo?.shouldForward && conversationInfo?.agentEnabled) {
+        // Only forward to n8n if it's an incoming user message AND agent enabled.
+        // SEND_MESSAGE events are AI/operator replies — never re-forward them.
+        if (normalizedEvent === 'messages.upsert' && conversationInfo?.shouldForward && conversationInfo?.agentEnabled) {
           await forwardMessageToN8N(supabase, whatsappInstance, payload, conversationInfo.conversationId);
-        } else if (conversationInfo?.shouldForward && !conversationInfo?.agentEnabled) {
+        } else if (normalizedEvent === 'messages.upsert' && conversationInfo?.shouldForward && !conversationInfo?.agentEnabled) {
           console.log('Agent is disabled for this conversation, not forwarding to n8n');
         }
         break;
