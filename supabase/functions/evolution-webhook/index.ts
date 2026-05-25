@@ -373,55 +373,67 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
 }
 
 // Build concatenated prompt from all agent instruction fields
-function buildSystemMessage(agent: any): string {
+function buildSystemMessage(
+  agent: any,
+  photos: Array<{ url: string; description: string | null }> = [],
+  pdfs: Array<{ url: string; description: string | null }> = [],
+): string {
   const sections: string[] = [];
 
-  if (agent.nome) {
-    sections.push(`## Nome do Agente\n${agent.nome}`);
-  }
+  if (agent.nome) sections.push(`## Nome do Agente\n${agent.nome}`);
+  if (agent.quem_eh) sections.push(`## Quem é o Agente\n${agent.quem_eh}`);
+  if (agent.o_que_faz) sections.push(`## O que o Agente Faz\n${agent.o_que_faz}`);
+  if (agent.objetivo) sections.push(`## Objetivo do Agente\n${agent.objetivo}`);
+  if (agent.como_deve_responder) sections.push(`## Como Deve Responder\n${agent.como_deve_responder}`);
+  if (agent.instrucoes_agente) sections.push(`## Instruções do Agente\n${agent.instrucoes_agente}`);
+  if (agent.topicos_evitar) sections.push(`## Tópicos a Evitar\n${agent.topicos_evitar}`);
+  if (agent.palavras_evitar) sections.push(`## Palavras a Evitar\n${agent.palavras_evitar}`);
+  if (agent.links_permitidos) sections.push(`## Links Permitidos\n${agent.links_permitidos}`);
+  if (agent.regras_personalizadas) sections.push(`## Regras Personalizadas\n${agent.regras_personalizadas}`);
+  if (agent.resposta_padrao_erro) sections.push(`## Resposta Padrão de Erro\n${agent.resposta_padrao_erro}`);
+  if (agent.resposta_secundaria_erro) sections.push(`## Resposta Secundária de Erro\n${agent.resposta_secundaria_erro}`);
 
-  if (agent.quem_eh) {
-    sections.push(`## Quem é o Agente\n${agent.quem_eh}`);
-  }
+  // ===== Mídias disponíveis (fotos e PDFs) =====
+  // Injetamos o catálogo + regras de uso para que o agente envie o ARQUIVO
+  // em si (foto/PDF) usando o marcador [[ENVIAR_MIDIA:URL]] ao invés de
+  // mandar link cru no texto. O n8n detecta esses marcadores na resposta
+  // do LLM e dispara o sendMedia da Evolution API para cada um.
+  if (photos.length > 0 || pdfs.length > 0) {
+    const lines: string[] = [];
+    lines.push('## Mídias Disponíveis para Envio');
+    lines.push(
+      'Você possui os arquivos abaixo (imagens e/ou PDFs) e pode enviá-los diretamente ao cliente quando ele pedir OU quando for natural/útil enviar (apresentação, folder, foto de produto, catálogo, comprovante visual, etc).',
+    );
 
-  if (agent.o_que_faz) {
-    sections.push(`## O que o Agente Faz\n${agent.o_que_faz}`);
-  }
+    if (photos.length > 0) {
+      lines.push('\n### Imagens / Fotos');
+      photos.forEach((p, i) => {
+        const desc = (p.description || '').trim() || 'sem descrição';
+        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+      });
+    }
 
-  if (agent.objetivo) {
-    sections.push(`## Objetivo do Agente\n${agent.objetivo}`);
-  }
+    if (pdfs.length > 0) {
+      lines.push('\n### PDFs / Documentos');
+      pdfs.forEach((p, i) => {
+        const desc = (p.description || '').trim() || 'sem descrição';
+        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+      });
+    }
 
-  if (agent.como_deve_responder) {
-    sections.push(`## Como Deve Responder\n${agent.como_deve_responder}`);
-  }
+    lines.push(`
+### Regras OBRIGATÓRIAS de envio de mídia
+1. NUNCA envie a URL crua, nem encurtada, nem "clique aqui", nem "segue o link". O cliente NÃO deve ver link nenhum.
+2. Para enviar o arquivo em si, escreva em uma linha SEPARADA, exatamente neste formato (um marcador por arquivo):
+   [[ENVIAR_MIDIA:URL_COMPLETA_AQUI]]
+3. Pode escrever uma frase curta antes do marcador apresentando o arquivo. Ex.:
+   "Claro! Segue nossa apresentação:
+   [[ENVIAR_MIDIA:https://exemplo.com/arquivo.pdf]]"
+4. Para enviar vários arquivos, coloque um marcador [[ENVIAR_MIDIA:...]] por linha.
+5. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.
+6. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.`);
 
-  if (agent.instrucoes_agente) {
-    sections.push(`## Instruções do Agente\n${agent.instrucoes_agente}`);
-  }
-
-  if (agent.topicos_evitar) {
-    sections.push(`## Tópicos a Evitar\n${agent.topicos_evitar}`);
-  }
-
-  if (agent.palavras_evitar) {
-    sections.push(`## Palavras a Evitar\n${agent.palavras_evitar}`);
-  }
-
-  if (agent.links_permitidos) {
-    sections.push(`## Links Permitidos\n${agent.links_permitidos}`);
-  }
-
-  if (agent.regras_personalizadas) {
-    sections.push(`## Regras Personalizadas\n${agent.regras_personalizadas}`);
-  }
-
-  if (agent.resposta_padrao_erro) {
-    sections.push(`## Resposta Padrão de Erro\n${agent.resposta_padrao_erro}`);
-  }
-
-  if (agent.resposta_secundaria_erro) {
-    sections.push(`## Resposta Secundária de Erro\n${agent.resposta_secundaria_erro}`);
+    sections.push(lines.join('\n'));
   }
 
   return sections.join('\n\n');
