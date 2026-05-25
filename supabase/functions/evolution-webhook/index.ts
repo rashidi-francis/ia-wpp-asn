@@ -662,11 +662,14 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
       // ---------- Flattened system fields ----------
       instance_name: instance.instance_name,
+      instancia: instance.instance_name,
       instance_id: instance.id,
       agent_id: instance.agent_id,
       phone_number: instance.phone_number,
       remoteJid,
       message: finalMessageText,
+      mensagem: finalMessageText,
+      mensage: finalMessageText,
       messageType: messageType || 'conversation',
       prompt: prompt,
 
