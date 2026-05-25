@@ -662,17 +662,22 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
       // ---------- Flattened system fields ----------
       instance_name: instance.instance_name,
+      instancia: instance.instance_name,
       instance_id: instance.id,
       agent_id: instance.agent_id,
       phone_number: instance.phone_number,
       remoteJid,
       message: finalMessageText,
+      mensagem: finalMessageText,
+      mensage: finalMessageText,
       messageType: messageType || 'conversation',
       prompt: prompt,
 
       // Assets
       agent_photos: photosJson,
       agent_pdfs: pdfsJson,
+      fotos: photosJson,
+      pdfs: pdfsJson,
 
       // Calendar (multi-tenant: per-agent refresh token + calendar id)
       calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
@@ -778,7 +783,37 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       return;
     }
 
-    await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
+    const sentMessageId = await sendTextMessageToEvolution(instance.instance_name, toNumber, replyText);
+
+    if (conversationId) {
+      const { error: aiMessageError } = await supabase
+        .from('whatsapp_messages')
+        .insert({
+          conversation_id: conversationId,
+          message_id: sentMessageId,
+          content: replyText,
+          is_from_me: true,
+          message_type: 'text',
+          sender_type: 'ai',
+        });
+
+      if (aiMessageError) {
+        console.error('Error saving AI reply to chat:', aiMessageError);
+      }
+
+      const { error: conversationUpdateError } = await supabase
+        .from('whatsapp_conversations')
+        .update({
+          last_message: replyText,
+          last_message_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId);
+
+      if (conversationUpdateError) {
+        console.error('Error updating conversation after saving AI reply:', conversationUpdateError);
+      }
+    }
 
     // ===== AI RESPONDED → AGENDA O PRIMEIRO FOLLOW-UP =====
     // Fluxo: lead manda msg → IA responde → agenda follow-up #1 para +10min.
@@ -833,11 +868,11 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
   }
 }
 
-async function sendTextMessageToEvolution(instanceName: string, number: string, text: string) {
+async function sendTextMessageToEvolution(instanceName: string, number: string, text: string): Promise<string | null> {
   try {
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       console.log('EVOLUTION_API_URL/EVOLUTION_API_KEY not configured; cannot send reply.');
-      return;
+      return null;
     }
 
     console.log(`Sending reply via Evolution API to ${number} (instance: ${instanceName})`);
@@ -864,11 +899,21 @@ async function sendTextMessageToEvolution(instanceName: string, number: string, 
 
     if (!resp.ok) {
       console.error('Evolution sendText error:', resp.status, body);
-      return;
+      return null;
+    }
+
+    let messageId: string | null = null;
+    try {
+      const parsed = JSON.parse(body);
+      messageId = parsed?.key?.id || parsed?.id || null;
+    } catch {
+      console.log('Could not parse Evolution sendText response for message ID');
     }
 
     console.log('Reply sent successfully');
+    return messageId;
   } catch (e) {
     console.error('Error sending reply via Evolution API:', e);
+    return null;
   }
 }
