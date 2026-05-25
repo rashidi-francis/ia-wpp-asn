@@ -94,68 +94,177 @@ const Index = () => {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl animate-glow-pulse" />
           </div>
 
-          <div className="container mx-auto px-4 pt-8 pb-16 md:pt-12 md:pb-24 text-center relative">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-md text-sm animate-fade-in">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-              </span>
-              <span className="text-foreground/80">
-                IA online • respondendo agora no WhatsApp
-              </span>
-            </div>
+          <div className="container mx-auto px-4 pt-8 pb-16 md:pt-12 md:pb-24 relative">
+            <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+              {/* Left: copy */}
+              <div className="text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-md text-sm animate-fade-in">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
+                  </span>
+                  <span className="text-foreground/80">
+                    IA online • respondendo agora no WhatsApp
+                  </span>
+                </div>
 
-            <h1
-              className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-[1.05] tracking-tight bg-[linear-gradient(110deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--primary)))] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-shift"
-              style={{ animationDuration: "6s" }}
-            >
-              O futuro do<br />atendimento
-              <span className="block mt-2 text-foreground/90 text-3xl md:text-5xl lg:text-6xl font-light">
-                já está no seu WhatsApp
-              </span>
-            </h1>
+                <h1
+                  className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.05] tracking-tight bg-[linear-gradient(110deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--primary)))] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-shift"
+                  style={{ animationDuration: "6s" }}
+                >
+                  O futuro do<br />atendimento
+                  <span className="block mt-2 text-foreground/90 text-2xl md:text-4xl lg:text-5xl font-light">
+                    já está no seu WhatsApp
+                  </span>
+                </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up">
-              Agentes de IA que conversam, qualificam leads e{" "}
-              <span className="text-foreground font-medium">
-                agendam no Google Calendar
-              </span>{" "}
-              — 24h por dia, sem você levantar um dedo.
-            </p>
+                <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 mb-8 animate-slide-up">
+                  Agentes de IA que conversam, qualificam leads e{" "}
+                  <span className="text-foreground font-medium">
+                    agendam no Google Calendar
+                  </span>{" "}
+                  — 24h por dia, sem você levantar um dedo.
+                </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center animate-fade-in-scale">
-              <Button
-                size="lg"
-                onClick={() => navigate("/login")}
-                className="group relative overflow-hidden bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_hsl(var(--primary)/0.6)] transition-all duration-300 h-14 px-8 text-base"
-              >
-                <span className="relative z-10 flex items-center">
-                  Criar minha conta grátis
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="h-14 px-8 text-base border-primary/30 bg-background/40 backdrop-blur-md hover:bg-primary/10 hover:border-primary/60"
-              >
-                <a href="#como-funciona">Ver como funciona</a>
-              </Button>
-            </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center animate-fade-in-scale">
+                  <Button
+                    size="lg"
+                    onClick={() => navigate("/login")}
+                    className="group relative overflow-hidden bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_hsl(var(--primary)/0.6)] transition-all duration-300 h-14 px-8 text-base"
+                  >
+                    <span className="relative z-10 flex items-center">
+                      Criar minha conta grátis
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    asChild
+                    className="h-14 px-8 text-base border-primary/30 bg-background/40 backdrop-blur-md hover:bg-primary/10 hover:border-primary/60"
+                  >
+                    <a href="#como-funciona">Ver como funciona</a>
+                  </Button>
+                </div>
 
-            <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-success" />
-                <span>Dados isolados por empresa</span>
+                <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-success" />
+                    <span>Dados isolados por empresa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-warning" />
+                    <span>Resposta em segundos</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span>Google Calendar</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-warning" />
-                <span>Resposta em segundos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span>Integrado ao Google Calendar</span>
+
+              {/* Right: animated phone mockup */}
+              <div className="relative flex justify-center lg:justify-end animate-fade-in-scale">
+                {/* Glow behind phone */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/40 via-accent/30 to-transparent blur-3xl rounded-full" />
+
+                {/* Floating AI badge */}
+                <div className="absolute -top-2 -left-2 lg:left-4 z-20 bg-card/80 backdrop-blur-md border border-primary/40 rounded-2xl px-3 py-2 shadow-[0_0_30px_hsl(var(--primary)/0.5)] animate-float flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">IA respondendo</span>
+                  <span className="flex gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </span>
+                </div>
+
+                {/* Floating calendar badge */}
+                <div className="absolute -bottom-2 -right-2 lg:right-4 z-20 bg-card/80 backdrop-blur-md border border-success/40 rounded-2xl px-3 py-2 shadow-[0_0_30px_hsl(var(--success)/0.4)] animate-float flex items-center gap-2" style={{ animationDelay: "1.5s" }}>
+                  <Calendar className="h-4 w-4 text-success" />
+                  <div className="text-left">
+                    <p className="text-xs font-medium leading-tight">Agendado!</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Amanhã, 14:30</p>
+                  </div>
+                </div>
+
+                {/* Phone frame */}
+                <div className="relative w-[280px] md:w-[320px] aspect-[9/19] rounded-[2.5rem] bg-gradient-to-b from-slate-800 to-slate-950 p-2.5 shadow-[0_30px_80px_-20px_hsl(var(--primary)/0.6)] border border-white/10">
+                  <div className="relative w-full h-full rounded-[2rem] overflow-hidden bg-[#0b141a] flex flex-col">
+                    {/* Notch */}
+                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-b-2xl z-10" />
+
+                    {/* WhatsApp header */}
+                    <div className="bg-[#202c33] px-3 pt-7 pb-2 flex items-center gap-2 border-b border-white/5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-bold text-white">IA</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-xs font-medium truncate">Atendimento ChatASN</p>
+                        <p className="text-[9px] text-emerald-400">online</p>
+                      </div>
+                    </div>
+
+                    {/* Chat area */}
+                    <div
+                      className="flex-1 px-3 py-3 space-y-2 overflow-hidden"
+                      style={{
+                        backgroundImage:
+                          "radial-gradient(circle at 20% 20%, hsl(var(--primary)/0.08), transparent 50%), radial-gradient(circle at 80% 80%, hsl(var(--accent)/0.08), transparent 50%)",
+                        backgroundColor: "#0b141a",
+                      }}
+                    >
+                      {/* Client message */}
+                      <div className="flex justify-start animate-fade-in">
+                        <div className="max-w-[80%] bg-[#202c33] text-white text-[11px] rounded-lg rounded-tl-none px-2.5 py-1.5 shadow">
+                          Oi! Vocês têm horário amanhã pra atendimento?
+                          <span className="block text-[8px] text-white/40 text-right mt-0.5">10:42</span>
+                        </div>
+                      </div>
+
+                      {/* IA reply */}
+                      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "0.3s" }}>
+                        <div className="max-w-[80%] bg-[#005c4b] text-white text-[11px] rounded-lg rounded-tr-none px-2.5 py-1.5 shadow">
+                          Olá! 👋 Temos sim. Posso te oferecer 14:30 ou 16:00. Qual prefere?
+                          <span className="block text-[8px] text-white/50 text-right mt-0.5">10:42 ✓✓</span>
+                        </div>
+                      </div>
+
+                      {/* Client message */}
+                      <div className="flex justify-start animate-fade-in" style={{ animationDelay: "0.6s" }}>
+                        <div className="max-w-[80%] bg-[#202c33] text-white text-[11px] rounded-lg rounded-tl-none px-2.5 py-1.5 shadow">
+                          14:30 tá ótimo!
+                          <span className="block text-[8px] text-white/40 text-right mt-0.5">10:43</span>
+                        </div>
+                      </div>
+
+                      {/* IA reply with calendar confirmation */}
+                      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "0.9s" }}>
+                        <div className="max-w-[85%] bg-[#005c4b] text-white text-[11px] rounded-lg rounded-tr-none px-2.5 py-1.5 shadow">
+                          Perfeito! ✅ Agendei pra amanhã 14:30 e já adicionei na agenda. Te envio lembrete 1h antes.
+                          <span className="block text-[8px] text-white/50 text-right mt-0.5">10:43 ✓✓</span>
+                        </div>
+                      </div>
+
+                      {/* Typing indicator */}
+                      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "1.4s" }}>
+                        <div className="bg-[#005c4b] rounded-lg rounded-tr-none px-2.5 py-2 flex gap-1 items-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Input bar */}
+                    <div className="bg-[#202c33] px-2 py-2 flex items-center gap-2">
+                      <div className="flex-1 bg-[#2a3942] rounded-full px-3 py-1.5 text-[10px] text-white/40">
+                        Mensagem
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-[#00a884] flex items-center justify-center">
+                        <MessageSquare className="h-3 w-3 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
