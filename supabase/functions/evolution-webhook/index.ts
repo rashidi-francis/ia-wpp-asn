@@ -525,31 +525,6 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
     console.log('Calendar settings:', JSON.stringify(calendarSettings ? { enabled: calendarSettings.enabled, hasToken: !!calendarSettings.google_refresh_token } : null));
 
-    // Normaliza URLs de compartilhamento (Drive, Dropbox) para download direto.
-    // Sem isso, o sendMedia do WhatsApp baixa uma página HTML e a entrega falha.
-    const normalizeMediaUrl = (rawUrl: string): string => {
-      if (!rawUrl) return rawUrl;
-      const url = rawUrl.trim();
-      try {
-        // Google Drive: /file/d/{id}/...  ou  ?id={id}
-        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveFileMatch) {
-          return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
-        }
-        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-        if (driveOpenMatch) {
-          return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
-        }
-        // Dropbox: troca ?dl=0 por ?dl=1
-        if (url.includes('dropbox.com')) {
-          return url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
-        }
-        return url;
-      } catch {
-        return url;
-      }
-    };
-
     // Fetch agent photos (inclui file_type para filtrar corretamente)
     const { data: agentPhotos, error: photosError } = await supabase
       .from('agent_photos')
@@ -577,8 +552,10 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
           agentPhotos
             .filter((p: any) => !p.file_type || p.file_type === 'image')
             .map((p: { url: string; description: string | null }) => ({
-              url: normalizeMediaUrl(p.url),
+              url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
               description: p.description || '',
+              mediaType: 'image',
+              fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
             }))
         )
       : '[]';
@@ -587,8 +564,10 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     const pdfsJson = agentPdfs && agentPdfs.length > 0
       ? JSON.stringify(
           agentPdfs.map((p: { url: string; description: string | null }) => ({
-            url: normalizeMediaUrl(p.url),
+            url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
             description: p.description || '',
+            mediaType: 'document',
+            fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
           }))
         )
       : '[]';
@@ -601,10 +580,17 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     // injetando também o catálogo de mídias (fotos/PDFs) com regras de envio.
     const photosForPrompt = (agentPhotos || [])
       .filter((p: any) => !p.file_type || p.file_type === 'image')
-      .map((p: any) => ({ url: normalizeMediaUrl(p.url), description: p.description || '' }));
+      .map((p: any) => ({
+        url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
+        description: p.description || '',
+        mediaType: 'image' as const,
+        fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
+      }));
     const pdfsForPrompt = (agentPdfs || []).map((p: any) => ({
-      url: normalizeMediaUrl(p.url),
+      url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
       description: p.description || '',
+      mediaType: 'document' as const,
+      fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
     }));
     const prompt = agent ? buildSystemMessage(agent, photosForPrompt, pdfsForPrompt) : '';
 
