@@ -254,7 +254,8 @@ async function createInstance(supabase: any, agent: any, instanceName: string) {
           events: [
             "CONNECTION_UPDATE",
             "QRCODE_UPDATED",
-            "MESSAGES_UPSERT"
+            "MESSAGES_UPSERT",
+            "SEND_MESSAGE"
           ]
         }
       }),
