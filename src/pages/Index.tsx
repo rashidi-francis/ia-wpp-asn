@@ -95,7 +95,7 @@ const Index = () => {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl animate-glow-pulse" />
           </div>
 
-          <div className="container mx-auto px-4 pt-8 pb-16 md:pt-12 md:pb-24 relative">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 pt-8 pb-16 md:pt-12 md:pb-24 relative">
             <div className="grid lg:grid-cols-2 xl:grid-cols-[1.15fr_1fr] gap-8 lg:gap-10 items-center">
               {/* Left: copy */}
               <div className="text-center lg:text-left">
