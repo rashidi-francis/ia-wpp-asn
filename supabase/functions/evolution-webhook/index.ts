@@ -16,6 +16,57 @@ const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 // n8n webhook URL for forwarding WhatsApp messages - loaded from environment variable
 const N8N_MESSAGES_WEBHOOK_URL = Deno.env.get('N8N_MESSAGES_WEBHOOK_URL');
 
+type AgentMedia = {
+  url: string;
+  description: string | null;
+  mediaType: 'image' | 'document';
+  fileName: string;
+};
+
+function toSafeFileName(description: string | null | undefined, fallback: string, extension: string): string {
+  const base = (description || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 54)
+    .toLowerCase() || fallback;
+
+  return `${base}.${extension}`;
+}
+
+function appendFileHintIfNeeded(url: string, fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (!ext || url.toLowerCase().includes(`.${ext}`)) return url;
+
+  return `${url.split('#')[0]}#${encodeURIComponent(fileName)}`;
+}
+
+function normalizeMediaUrl(rawUrl: string, fileName?: string): string {
+  if (!rawUrl) return rawUrl;
+  const url = rawUrl.trim();
+  try {
+    let normalized = url;
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveFileMatch) {
+      normalized = `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+      normalized = `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    if (url.includes('dropbox.com')) {
+      normalized = url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+  } catch {
+    return url;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
