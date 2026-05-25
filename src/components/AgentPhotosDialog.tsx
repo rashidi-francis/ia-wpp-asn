@@ -68,6 +68,16 @@ export function AgentPhotosDialog({ open, onOpenChange, agentId }: AgentPhotosDi
     }
   };
 
+  const syncAgentMedia = async () => {
+    const { error } = await supabase.functions.invoke("sync-agent-n8n", {
+      body: { agentId },
+    });
+
+    if (error) {
+      console.error("Erro ao sincronizar mídias com n8n:", error);
+    }
+  };
+
   const handleAddFile = async () => {
     if (!newUrl.trim()) {
       toast({
@@ -96,6 +106,7 @@ export function AgentPhotosDialog({ open, onOpenChange, agentId }: AgentPhotosDi
       setFiles([data as AgentFile, ...files]);
       setNewUrl("");
       setNewDescription("");
+      await syncAgentMedia();
 
       toast({
         title: activeTab === "image" ? "Foto adicionada" : "PDF adicionado",
@@ -123,6 +134,7 @@ export function AgentPhotosDialog({ open, onOpenChange, agentId }: AgentPhotosDi
       if (error) throw error;
 
       setFiles(files.filter((f) => f.id !== fileId));
+      await syncAgentMedia();
 
       toast({
         title: "Arquivo removido",
