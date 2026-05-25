@@ -423,15 +423,16 @@ function buildSystemMessage(
 
     lines.push(`
 ### Regras OBRIGATÓRIAS de envio de mídia
-1. NUNCA envie a URL crua, nem encurtada, nem "clique aqui", nem "segue o link". O cliente NÃO deve ver link nenhum.
-2. Para enviar o arquivo em si, escreva em uma linha SEPARADA, exatamente neste formato (um marcador por arquivo):
+1. NUNCA envie a URL crua, nem encurtada, nem "clique aqui", nem "segue o link", nem diga que o cliente pode baixar em algum link. O cliente NÃO deve ver link nenhum.
+2. NUNCA diga "vou enviar", "segue a imagem" ou "segue o PDF" sem colocar o marcador técnico logo abaixo.
+3. Para enviar o arquivo em si, escreva em uma linha SEPARADA, exatamente neste formato (um marcador por arquivo):
    [[ENVIAR_MIDIA:URL_COMPLETA_AQUI]]
-3. Pode escrever uma frase curta antes do marcador apresentando o arquivo. Ex.:
+4. Pode escrever uma frase curta antes do marcador apresentando o arquivo. Ex.:
    "Claro! Segue nossa apresentação:
    [[ENVIAR_MIDIA:https://exemplo.com/arquivo.pdf]]"
-4. Para enviar vários arquivos, coloque um marcador [[ENVIAR_MIDIA:...]] por linha.
-5. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.
-6. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.`);
+5. Para enviar vários arquivos, coloque um marcador [[ENVIAR_MIDIA:...]] por linha.
+6. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.
+7. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "portfolio", "portfólio", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.`);
 
     sections.push(lines.join('\n'));
   }
