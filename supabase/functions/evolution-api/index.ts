@@ -372,7 +372,7 @@ async function getQRCode(supabase: any, agentId: string, instanceName: string) {
             url: webhookUrl,
             webhookByEvents: false,
             webhookBase64: true,
-            events: ["CONNECTION_UPDATE", "QRCODE_UPDATED", "MESSAGES_UPSERT"]
+            events: ["CONNECTION_UPDATE", "QRCODE_UPDATED", "MESSAGES_UPSERT", "SEND_MESSAGE"]
           }
         }),
       });
