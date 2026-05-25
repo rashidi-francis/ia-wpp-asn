@@ -110,11 +110,11 @@ const Index = () => {
                 </div>
 
                 <h1
-                  className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.05] tracking-tight bg-[linear-gradient(110deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--primary)))] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-shift"
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold mb-6 leading-[1.05] tracking-tight bg-[linear-gradient(110deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--primary)))] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-shift"
                   style={{ animationDuration: "6s" }}
                 >
                   O futuro do<br />atendimento
-                  <span className="block mt-2 text-foreground/90 text-2xl md:text-4xl lg:text-5xl font-light">
+                  <span className="block mt-2 text-foreground/90 text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-light">
                     já está no seu WhatsApp
                   </span>
                 </h1>
