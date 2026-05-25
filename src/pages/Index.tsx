@@ -345,10 +345,40 @@ const Index = () => {
         {/* Footer */}
         <footer className="border-t border-border/40 mt-16">
           <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-4">
+              <a
+                href="https://ajudoseunegocio.com.br/politica-de-privacidade"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors underline underline-offset-2"
+              >
+                Política de Privacidade
+              </a>
+              <span className="hidden sm:inline text-border">|</span>
+              <a
+                href="https://ajudoseunegocio.com.br/termos-de-uso"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors underline underline-offset-2"
+              >
+                Termos de Uso
+              </a>
+            </div>
             <p>© 2024 ChatASN — Ajudo Seu Negócio IA</p>
             <p className="mt-2">
               Plataforma de atendimento automatizado no WhatsApp com IA e
               integração com Google Calendar.
+            </p>
+            <p className="mt-2">
+              Plataforma desenvolvida por:{" "}
+              <a
+                href="https://ajudoseunegocio.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline transition-colors"
+              >
+                ajudoseunegocio.com.br
+              </a>
             </p>
           </div>
         </footer>
