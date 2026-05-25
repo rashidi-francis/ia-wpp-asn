@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import logo from "@/assets/chatasn-logo.png";
+import { HeroPhoneChat } from "@/components/HeroPhoneChat";
 
 const Index = () => {
   const navigate = useNavigate();
