@@ -311,7 +311,7 @@ const Index = () => {
         {/* Footer */}
         <footer className="border-t border-border/40 mt-16">
           <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} ChatASN — Ajudo Seu Negócio IA</p>
+            <p>© 2024 ChatASN — Ajudo Seu Negócio IA</p>
             <p className="mt-2">
               Plataforma de atendimento automatizado no WhatsApp com IA e
               integração com Google Calendar.
