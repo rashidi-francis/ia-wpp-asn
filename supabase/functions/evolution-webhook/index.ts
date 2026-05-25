@@ -20,6 +20,7 @@ type AgentMedia = {
   url: string;
   description: string | null;
   mediaType: 'image' | 'document';
+  mediatype: 'image' | 'document';
   fileName: string;
 };
 
@@ -555,6 +556,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
               url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
               description: p.description || '',
               mediaType: 'image',
+              mediatype: 'image',
               fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
             }))
         )
@@ -567,6 +569,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
             url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
             description: p.description || '',
             mediaType: 'document',
+            mediatype: 'document',
             fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
           }))
         )
@@ -584,12 +587,14 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
         url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
         description: p.description || '',
         mediaType: 'image' as const,
+        mediatype: 'image' as const,
         fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
       }));
     const pdfsForPrompt = (agentPdfs || []).map((p: any) => ({
       url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
       description: p.description || '',
       mediaType: 'document' as const,
+      mediatype: 'document' as const,
       fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
     }));
     const prompt = agent ? buildSystemMessage(agent, photosForPrompt, pdfsForPrompt) : '';
