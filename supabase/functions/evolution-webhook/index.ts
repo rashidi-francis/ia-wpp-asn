@@ -460,10 +460,35 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
     console.log('Calendar settings:', JSON.stringify(calendarSettings ? { enabled: calendarSettings.enabled, hasToken: !!calendarSettings.google_refresh_token } : null));
 
-    // Fetch agent photos
+    // Normaliza URLs de compartilhamento (Drive, Dropbox) para download direto.
+    // Sem isso, o sendMedia do WhatsApp baixa uma página HTML e a entrega falha.
+    const normalizeMediaUrl = (rawUrl: string): string => {
+      if (!rawUrl) return rawUrl;
+      const url = rawUrl.trim();
+      try {
+        // Google Drive: /file/d/{id}/...  ou  ?id={id}
+        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveFileMatch) {
+          return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+        }
+        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+        if (driveOpenMatch) {
+          return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+        }
+        // Dropbox: troca ?dl=0 por ?dl=1
+        if (url.includes('dropbox.com')) {
+          return url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+        }
+        return url;
+      } catch {
+        return url;
+      }
+    };
+
+    // Fetch agent photos (inclui file_type para filtrar corretamente)
     const { data: agentPhotos, error: photosError } = await supabase
       .from('agent_photos')
-      .select('url, description')
+      .select('url, description, file_type')
       .eq('agent_id', instance.agent_id);
 
     if (photosError) {
@@ -481,17 +506,31 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       console.error('Error fetching agent PDFs:', pdfsError);
     }
 
-    // Format photos for n8n (JSON array of photo objects) - only images
+    // Format photos for n8n (JSON array de imagens) — exclui PDFs
     const photosJson = agentPhotos && agentPhotos.length > 0
-      ? JSON.stringify(agentPhotos.filter((p: any) => !p.file_type || p.file_type === 'image').map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
+      ? JSON.stringify(
+          agentPhotos
+            .filter((p: any) => !p.file_type || p.file_type === 'image')
+            .map((p: { url: string; description: string | null }) => ({
+              url: normalizeMediaUrl(p.url),
+              description: p.description || '',
+            }))
+        )
       : '[]';
 
     // Format PDFs for n8n
     const pdfsJson = agentPdfs && agentPdfs.length > 0
-      ? JSON.stringify(agentPdfs.map((p: { url: string; description: string | null }) => ({ url: p.url, description: p.description || '' })))
+      ? JSON.stringify(
+          agentPdfs.map((p: { url: string; description: string | null }) => ({
+            url: normalizeMediaUrl(p.url),
+            description: p.description || '',
+          }))
+        )
       : '[]';
 
     console.log('Agent photos count:', agentPhotos?.length || 0);
+    console.log('Agent PDFs count:', agentPdfs?.length || 0);
+    console.log('PDFs payload:', pdfsJson);
 
     // Build the concatenated prompt from all agent instruction fields
     const prompt = agent ? buildSystemMessage(agent) : '';
