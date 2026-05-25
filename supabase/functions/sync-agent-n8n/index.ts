@@ -10,8 +10,33 @@ const N8N_AGENT_SYNC_WEBHOOK_URL = Deno.env.get('N8N_AGENT_SYNC_WEBHOOK_URL');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+function normalizeMediaUrl(rawUrl: string): string {
+  if (!rawUrl) return rawUrl;
+  const url = rawUrl.trim();
+  try {
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveFileMatch) {
+      return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+    }
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+      return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+    }
+    if (url.includes('dropbox.com')) {
+      return url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 // Concatenate all agent instruction fields into a single formatted text block
-function buildSystemMessage(agent: any): string {
+function buildSystemMessage(
+  agent: any,
+  photos: Array<{ url: string; description: string | null }> = [],
+  pdfs: Array<{ url: string; description: string | null }> = [],
+): string {
   const sections: string[] = [];
 
   if (agent.nome) {
@@ -60,6 +85,38 @@ function buildSystemMessage(agent: any): string {
 
   if (agent.resposta_secundaria_erro) {
     sections.push(`## Resposta Secundária de Erro\n${agent.resposta_secundaria_erro}`);
+  }
+
+  if (photos.length > 0 || pdfs.length > 0) {
+    const lines: string[] = [];
+    lines.push('## MÍDIAS DO AGENTE — REGRA CRÍTICA MULTI-TENANT');
+    lines.push('Os arquivos abaixo pertencem SOMENTE a este agente/cliente. Quando fizer sentido enviar foto, imagem, apresentação, folder, catálogo ou PDF, envie o arquivo real usando o marcador técnico.');
+
+    if (photos.length > 0) {
+      lines.push('\n### Imagens / Fotos disponíveis');
+      photos.forEach((p, i) => {
+        lines.push(`${i + 1}. ${(p.description || '').trim() || 'imagem sem descrição'}\n   URL: ${p.url}`);
+      });
+    }
+
+    if (pdfs.length > 0) {
+      lines.push('\n### PDFs / Documentos disponíveis');
+      pdfs.forEach((p, i) => {
+        lines.push(`${i + 1}. ${(p.description || '').trim() || 'PDF sem descrição'}\n   URL: ${p.url}`);
+      });
+    }
+
+    lines.push(`
+### COMO RESPONDER QUANDO FOR ENVIAR MÍDIA
+- NUNCA envie link, URL crua, "clique aqui", "baixar pelo link" ou promessa tipo "vou enviar" sem o marcador.
+- A ação de enviar mídia é escrever exatamente uma linha neste formato, usando SOMENTE uma URL listada acima:
+  [[ENVIAR_MIDIA:URL_COMPLETA_DA_LISTA]]
+- Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com uma frase curta + o marcador.
+- O marcador deve aparecer no texto final para o n8n capturar por regex /\[\[ENVIAR_MIDIA:(.+?)\]\]/g e chamar /message/sendMedia/{instance}.
+- Para vários arquivos, use um marcador por linha.
+- Se não existir arquivo relacionado na lista acima, diga que não possui esse arquivo cadastrado; não invente URL.`);
+
+    sections.push(lines.join('\n'));
   }
 
   return sections.join('\n\n');
