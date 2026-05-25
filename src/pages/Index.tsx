@@ -202,12 +202,12 @@ const Index = () => {
               Para que serve o ChatASN
             </h2>
             <p className="text-muted-foreground mb-4">
-              O ChatASN é uma plataforma SaaS que permite a pequenas e médias
-              empresas automatizarem o atendimento de clientes no WhatsApp
-              através de agentes de Inteligência Artificial personalizados.
-              Cada empresa configura seu próprio agente com instruções, tom de
-              voz e regras de negócio, e o agente passa a responder
-              automaticamente as mensagens recebidas no WhatsApp.
+              O ChatASN é uma plataforma SaaS que permite a pequenas, médias e
+              grandes empresas automatizarem o atendimento de clientes no
+              WhatsApp através de agentes de Inteligência Artificial
+              personalizados. Cada empresa configura seu próprio agente com
+              instruções, tom de voz e regras de negócio, e o agente passa a
+              responder automaticamente as mensagens recebidas no WhatsApp.
             </p>
             <p className="text-muted-foreground">
               Quando o cliente deseja marcar um horário (consulta, reunião,
