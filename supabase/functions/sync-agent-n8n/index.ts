@@ -10,22 +10,55 @@ const N8N_AGENT_SYNC_WEBHOOK_URL = Deno.env.get('N8N_AGENT_SYNC_WEBHOOK_URL');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-function normalizeMediaUrl(rawUrl: string): string {
+type AgentMedia = {
+  url: string;
+  description: string | null;
+  mediaType: 'image' | 'document';
+  mediatype: 'image' | 'document';
+  fileName: string;
+};
+
+function toSafeFileName(description: string | null | undefined, fallback: string, extension: string): string {
+  const base = (description || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 54)
+    .toLowerCase() || fallback;
+
+  return `${base}.${extension}`;
+}
+
+function appendFileHintIfNeeded(url: string, fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (!ext || url.toLowerCase().includes(`.${ext}`)) return url;
+
+  // Use a URL fragment as an n8n parsing hint. It does not change the real download request,
+  // but lets Parse Mídia detect PDFs/images even when Google Drive URLs end in /uc?id=...
+  return `${url.split('#')[0]}#${encodeURIComponent(fileName)}`;
+}
+
+function normalizeMediaUrl(rawUrl: string, fileName?: string): string {
   if (!rawUrl) return rawUrl;
   const url = rawUrl.trim();
   try {
+    let normalized = url;
     const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (driveFileMatch) {
-      return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+      normalized = `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
     }
     const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
     if (driveOpenMatch) {
-      return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+      normalized = `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
     }
     if (url.includes('dropbox.com')) {
-      return url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+      normalized = url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
     }
-    return url;
+    return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
   } catch {
     return url;
   }
@@ -34,8 +67,8 @@ function normalizeMediaUrl(rawUrl: string): string {
 // Concatenate all agent instruction fields into a single formatted text block
 function buildSystemMessage(
   agent: any,
-  photos: Array<{ url: string; description: string | null }> = [],
-  pdfs: Array<{ url: string; description: string | null }> = [],
+  photos: AgentMedia[] = [],
+  pdfs: AgentMedia[] = [],
 ): string {
   const sections: string[] = [];
 
@@ -95,14 +128,14 @@ function buildSystemMessage(
     if (photos.length > 0) {
       lines.push('\n### Imagens / Fotos disponíveis');
       photos.forEach((p, i) => {
-        lines.push(`${i + 1}. ${(p.description || '').trim() || 'imagem sem descrição'}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${(p.description || '').trim() || 'imagem sem descrição'}\n   Tipo Evolution: image\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
     if (pdfs.length > 0) {
       lines.push('\n### PDFs / Documentos disponíveis');
       pdfs.forEach((p, i) => {
-        lines.push(`${i + 1}. ${(p.description || '').trim() || 'PDF sem descrição'}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${(p.description || '').trim() || 'PDF sem descrição'}\n   Tipo Evolution: document\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
@@ -113,6 +146,7 @@ function buildSystemMessage(
   [[ENVIAR_MIDIA:URL_COMPLETA_DA_LISTA]]
 - Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com uma frase curta + o marcador.
 - O marcador deve aparecer no texto final para o n8n capturar por regex /\[\[ENVIAR_MIDIA:(.+?)\]\]/g e chamar /message/sendMedia/{instance}.
+- Para PDFs/documentos, o n8n deve enviar como mediatype=document. Nunca trate PDF como image.
 - Para vários arquivos, use um marcador por linha.
 - Se não existir arquivo relacionado na lista acima, diga que não possui esse arquivo cadastrado; não invente URL.`);
 
@@ -180,15 +214,21 @@ serve(async (req) => {
     const photos = (mediaFiles || [])
       .filter((file: any) => !file.file_type || file.file_type === 'image')
       .map((file: any) => ({
-        url: normalizeMediaUrl(file.url),
+        url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'imagem-agente', 'jpg')),
         description: file.description || '',
+        mediaType: 'image' as const,
+        mediatype: 'image' as const,
+        fileName: toSafeFileName(file.description, 'imagem-agente', 'jpg'),
       }));
 
     const pdfs = (mediaFiles || [])
       .filter((file: any) => file.file_type === 'pdf')
       .map((file: any) => ({
-        url: normalizeMediaUrl(file.url),
+        url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'documento-agente', 'pdf')),
         description: file.description || '',
+        mediaType: 'document' as const,
+        mediatype: 'document' as const,
+        fileName: toSafeFileName(file.description, 'documento-agente', 'pdf'),
       }));
 
     // Build the concatenated system message with the agent media catalog

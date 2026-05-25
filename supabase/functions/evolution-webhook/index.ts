@@ -16,6 +16,58 @@ const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 // n8n webhook URL for forwarding WhatsApp messages - loaded from environment variable
 const N8N_MESSAGES_WEBHOOK_URL = Deno.env.get('N8N_MESSAGES_WEBHOOK_URL');
 
+type AgentMedia = {
+  url: string;
+  description: string | null;
+  mediaType: 'image' | 'document';
+  mediatype: 'image' | 'document';
+  fileName: string;
+};
+
+function toSafeFileName(description: string | null | undefined, fallback: string, extension: string): string {
+  const base = (description || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 54)
+    .toLowerCase() || fallback;
+
+  return `${base}.${extension}`;
+}
+
+function appendFileHintIfNeeded(url: string, fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (!ext || url.toLowerCase().includes(`.${ext}`)) return url;
+
+  return `${url.split('#')[0]}#${encodeURIComponent(fileName)}`;
+}
+
+function normalizeMediaUrl(rawUrl: string, fileName?: string): string {
+  if (!rawUrl) return rawUrl;
+  const url = rawUrl.trim();
+  try {
+    let normalized = url;
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveFileMatch) {
+      normalized = `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+      normalized = `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    if (url.includes('dropbox.com')) {
+      normalized = url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+  } catch {
+    return url;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -375,8 +427,8 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
 // Build concatenated prompt from all agent instruction fields
 function buildSystemMessage(
   agent: any,
-  photos: Array<{ url: string; description: string | null }> = [],
-  pdfs: Array<{ url: string; description: string | null }> = [],
+  photos: AgentMedia[] = [],
+  pdfs: AgentMedia[] = [],
 ): string {
   const sections: string[] = [];
 
@@ -409,7 +461,7 @@ function buildSystemMessage(
       lines.push('\n### Imagens / Fotos');
       photos.forEach((p, i) => {
         const desc = (p.description || '').trim() || 'sem descrição';
-        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${desc}\n   Tipo Evolution: image\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
@@ -417,7 +469,7 @@ function buildSystemMessage(
       lines.push('\n### PDFs / Documentos');
       pdfs.forEach((p, i) => {
         const desc = (p.description || '').trim() || 'sem descrição';
-        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${desc}\n   Tipo Evolution: document\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
@@ -432,7 +484,8 @@ function buildSystemMessage(
    [[ENVIAR_MIDIA:https://exemplo.com/arquivo.pdf]]"
 5. Para enviar vários arquivos, coloque um marcador [[ENVIAR_MIDIA:...]] por linha.
 6. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.
-7. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "portfolio", "portfólio", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.`);
+7. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "portfolio", "portfólio", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.
+8. PDF/documento deve ser enviado pelo n8n como mediatype=document, nunca como image. Imagens/fotos usam mediatype=image.`);
 
     sections.push(lines.join('\n'));
   }
@@ -473,31 +526,6 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
 
     console.log('Calendar settings:', JSON.stringify(calendarSettings ? { enabled: calendarSettings.enabled, hasToken: !!calendarSettings.google_refresh_token } : null));
 
-    // Normaliza URLs de compartilhamento (Drive, Dropbox) para download direto.
-    // Sem isso, o sendMedia do WhatsApp baixa uma página HTML e a entrega falha.
-    const normalizeMediaUrl = (rawUrl: string): string => {
-      if (!rawUrl) return rawUrl;
-      const url = rawUrl.trim();
-      try {
-        // Google Drive: /file/d/{id}/...  ou  ?id={id}
-        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveFileMatch) {
-          return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
-        }
-        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-        if (driveOpenMatch) {
-          return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
-        }
-        // Dropbox: troca ?dl=0 por ?dl=1
-        if (url.includes('dropbox.com')) {
-          return url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
-        }
-        return url;
-      } catch {
-        return url;
-      }
-    };
-
     // Fetch agent photos (inclui file_type para filtrar corretamente)
     const { data: agentPhotos, error: photosError } = await supabase
       .from('agent_photos')
@@ -525,8 +553,11 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
           agentPhotos
             .filter((p: any) => !p.file_type || p.file_type === 'image')
             .map((p: { url: string; description: string | null }) => ({
-              url: normalizeMediaUrl(p.url),
+              url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
               description: p.description || '',
+              mediaType: 'image',
+              mediatype: 'image',
+              fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
             }))
         )
       : '[]';
@@ -535,8 +566,11 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     const pdfsJson = agentPdfs && agentPdfs.length > 0
       ? JSON.stringify(
           agentPdfs.map((p: { url: string; description: string | null }) => ({
-            url: normalizeMediaUrl(p.url),
+            url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
             description: p.description || '',
+            mediaType: 'document',
+            mediatype: 'document',
+            fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
           }))
         )
       : '[]';
@@ -549,10 +583,19 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     // injetando também o catálogo de mídias (fotos/PDFs) com regras de envio.
     const photosForPrompt = (agentPhotos || [])
       .filter((p: any) => !p.file_type || p.file_type === 'image')
-      .map((p: any) => ({ url: normalizeMediaUrl(p.url), description: p.description || '' }));
+      .map((p: any) => ({
+        url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
+        description: p.description || '',
+        mediaType: 'image' as const,
+        mediatype: 'image' as const,
+        fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
+      }));
     const pdfsForPrompt = (agentPdfs || []).map((p: any) => ({
-      url: normalizeMediaUrl(p.url),
+      url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
       description: p.description || '',
+      mediaType: 'document' as const,
+      mediatype: 'document' as const,
+      fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
     }));
     const prompt = agent ? buildSystemMessage(agent, photosForPrompt, pdfsForPrompt) : '';
 
