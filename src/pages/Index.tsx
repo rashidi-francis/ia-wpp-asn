@@ -191,7 +191,6 @@ const Index = () => {
 
                 <HeroPhoneChat />
               </div>
-              </div>
             </div>
           </div>
         </section>
