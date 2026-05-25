@@ -94,7 +94,7 @@ const Index = () => {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl animate-glow-pulse" />
           </div>
 
-          <div className="container mx-auto px-4 py-20 md:py-32 text-center relative">
+          <div className="container mx-auto px-4 pt-8 pb-16 md:pt-12 md:pb-24 text-center relative">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-md text-sm animate-fade-in">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-75 animate-ping" />
