@@ -279,22 +279,32 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
         content = messageData.conversation;
       } else if (messageData.extendedTextMessage?.text) {
         content = messageData.extendedTextMessage.text;
-      } else if (messageData.imageMessage?.caption) {
-        content = '[Imagem] ' + (messageData.imageMessage.caption || '');
-      } else if (messageData.videoMessage?.caption) {
-        content = '[Vídeo] ' + (messageData.videoMessage.caption || '');
+      } else if (messageData.imageMessage) {
+        const cap = messageData.imageMessage.caption?.trim();
+        content = cap ? `[Imagem] ${cap}` : '[Imagem enviada]';
+      } else if (messageData.videoMessage) {
+        const cap = messageData.videoMessage.caption?.trim();
+        content = cap ? `[Vídeo] ${cap}` : '[Vídeo enviado]';
       } else if (messageData.audioMessage) {
         content = '[Áudio]';
-      } else if (messageData.documentMessage?.fileName) {
-        content = '[Documento] ' + messageData.documentMessage.fileName;
+      } else if (messageData.documentMessage || messageData.documentWithCaptionMessage) {
+        const doc = messageData.documentMessage || messageData.documentWithCaptionMessage?.message?.documentMessage || {};
+        const name = doc.fileName || doc.title || 'documento.pdf';
+        const cap = (doc.caption || messageData.documentWithCaptionMessage?.message?.documentMessage?.caption || '').trim();
+        content = cap ? `[Documento] ${name} — ${cap}` : `[Documento] ${name}`;
       } else if (messageData.stickerMessage) {
         content = '[Sticker]';
       } else if (messageData.contactMessage) {
         content = '[Contato]';
       } else if (messageData.locationMessage) {
         content = '[Localização]';
+      } else if (messageData.buttonsResponseMessage?.selectedDisplayText) {
+        content = messageData.buttonsResponseMessage.selectedDisplayText;
+      } else if (messageData.listResponseMessage?.title) {
+        content = messageData.listResponseMessage.title;
       } else {
-        content = '[Mensagem]';
+        // Last resort: try to find any text-like field before falling back
+        content = messageData.text || messageData.body || messageData.caption || '[Mensagem]';
       }
       
       // Extract contact info
