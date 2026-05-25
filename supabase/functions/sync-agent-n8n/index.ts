@@ -168,8 +168,31 @@ serve(async (req) => {
       .eq('agent_id', agentId)
       .maybeSingle();
 
-    // Build the concatenated system message
-    const systemMessage = buildSystemMessage(agent);
+    const { data: mediaFiles, error: mediaError } = await supabase
+      .from('agent_photos')
+      .select('url, description, file_type')
+      .eq('agent_id', agentId);
+
+    if (mediaError) {
+      console.error('Error fetching agent media:', mediaError);
+    }
+
+    const photos = (mediaFiles || [])
+      .filter((file: any) => !file.file_type || file.file_type === 'image')
+      .map((file: any) => ({
+        url: normalizeMediaUrl(file.url),
+        description: file.description || '',
+      }));
+
+    const pdfs = (mediaFiles || [])
+      .filter((file: any) => file.file_type === 'pdf')
+      .map((file: any) => ({
+        url: normalizeMediaUrl(file.url),
+        description: file.description || '',
+      }));
+
+    // Build the concatenated system message with the agent media catalog
+    const systemMessage = buildSystemMessage(agent, photos, pdfs);
 
     // Prepare payload for n8n webhook
     const payload = {
@@ -181,6 +204,9 @@ serve(async (req) => {
       phone_number: instance?.phone_number || null,
       whatsapp_status: instance?.status || 'disconnected',
       system_message: systemMessage,
+      prompt: systemMessage,
+      agent_photos: JSON.stringify(photos),
+      agent_pdfs: JSON.stringify(pdfs),
       updated_at: new Date().toISOString(),
     };
 
