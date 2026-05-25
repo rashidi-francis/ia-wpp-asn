@@ -426,8 +426,8 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
 // Build concatenated prompt from all agent instruction fields
 function buildSystemMessage(
   agent: any,
-  photos: Array<{ url: string; description: string | null }> = [],
-  pdfs: Array<{ url: string; description: string | null }> = [],
+  photos: AgentMedia[] = [],
+  pdfs: AgentMedia[] = [],
 ): string {
   const sections: string[] = [];
 
@@ -460,7 +460,7 @@ function buildSystemMessage(
       lines.push('\n### Imagens / Fotos');
       photos.forEach((p, i) => {
         const desc = (p.description || '').trim() || 'sem descrição';
-        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${desc}\n   Tipo Evolution: image\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
@@ -468,7 +468,7 @@ function buildSystemMessage(
       lines.push('\n### PDFs / Documentos');
       pdfs.forEach((p, i) => {
         const desc = (p.description || '').trim() || 'sem descrição';
-        lines.push(`${i + 1}. ${desc}\n   URL: ${p.url}`);
+        lines.push(`${i + 1}. ${desc}\n   Tipo Evolution: document\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
       });
     }
 
@@ -483,7 +483,8 @@ function buildSystemMessage(
    [[ENVIAR_MIDIA:https://exemplo.com/arquivo.pdf]]"
 5. Para enviar vários arquivos, coloque um marcador [[ENVIAR_MIDIA:...]] por linha.
 6. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.
-7. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "portfolio", "portfólio", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.`);
+7. Se o cliente pedir "folder", "apresentação", "catálogo", "tabela", "portfolio", "portfólio", "foto", "imagem", "pdf" e existir arquivo correspondente acima, envie usando o marcador imediatamente.
+8. PDF/documento deve ser enviado pelo n8n como mediatype=document, nunca como image. Imagens/fotos usam mediatype=image.`);
 
     sections.push(lines.join('\n'));
   }
