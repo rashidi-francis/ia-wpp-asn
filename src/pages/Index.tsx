@@ -70,25 +70,94 @@ const Index = () => {
         </header>
 
         {/* Hero */}
-        <section className="container mx-auto px-4 py-16 md:py-24 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            Atendimento automático no WhatsApp com IA
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            O ChatASN é uma plataforma para empresas brasileiras criarem agentes
-            de Inteligência Artificial que respondem clientes no WhatsApp 24h
-            por dia, qualificam leads e <strong>agendam compromissos
-            diretamente no Google Calendar</strong> da sua empresa — sem
-            intervenção humana.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" onClick={() => navigate("/login")}>
-              Criar minha conta grátis
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <a href="#como-funciona">Como funciona</a>
-            </Button>
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 -z-10">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.25),transparent_60%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,hsl(var(--accent)/0.25),transparent_55%)]" />
+            <div
+              className="absolute inset-0 opacity-[0.18]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(hsl(var(--primary)/0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)/0.5) 1px, transparent 1px)",
+                backgroundSize: "48px 48px",
+                maskImage:
+                  "radial-gradient(ellipse at center, black 40%, transparent 75%)",
+                WebkitMaskImage:
+                  "radial-gradient(ellipse at center, black 40%, transparent 75%)",
+              }}
+            />
+            <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary/30 blur-3xl animate-float" />
+            <div
+              className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-accent/30 blur-3xl animate-float"
+              style={{ animationDelay: "1.5s" }}
+            />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl animate-glow-pulse" />
+          </div>
+
+          <div className="container mx-auto px-4 py-20 md:py-32 text-center relative">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-md text-sm animate-fade-in">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
+              </span>
+              <span className="text-foreground/80">
+                IA online • respondendo agora no WhatsApp
+              </span>
+            </div>
+
+            <h1
+              className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-[1.05] tracking-tight bg-[linear-gradient(110deg,hsl(var(--primary)),hsl(var(--accent)),hsl(var(--primary)))] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-shift"
+              style={{ animationDuration: "6s" }}
+            >
+              O futuro do<br />atendimento
+              <span className="block mt-2 text-foreground/90 text-3xl md:text-5xl lg:text-6xl font-light">
+                já está no seu WhatsApp
+              </span>
+            </h1>
+
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up">
+              Agentes de IA que conversam, qualificam leads e{" "}
+              <span className="text-foreground font-medium">
+                agendam no Google Calendar
+              </span>{" "}
+              — 24h por dia, sem você levantar um dedo.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center animate-fade-in-scale">
+              <Button
+                size="lg"
+                onClick={() => navigate("/login")}
+                className="group relative overflow-hidden bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_hsl(var(--primary)/0.6)] transition-all duration-300 h-14 px-8 text-base"
+              >
+                <span className="relative z-10 flex items-center">
+                  Criar minha conta grátis
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="h-14 px-8 text-base border-primary/30 bg-background/40 backdrop-blur-md hover:bg-primary/10 hover:border-primary/60"
+              >
+                <a href="#como-funciona">Ver como funciona</a>
+              </Button>
+            </div>
+
+            <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-success" />
+                <span>Dados isolados por empresa</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-warning" />
+                <span>Resposta em segundos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span>Integrado ao Google Calendar</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -242,7 +311,7 @@ const Index = () => {
         {/* Footer */}
         <footer className="border-t border-border/40 mt-16">
           <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} ChatASN — Ajudo Seu Negócio IA</p>
+            <p>© 2024 ChatASN — Ajudo Seu Negócio IA</p>
             <p className="mt-2">
               Plataforma de atendimento automatizado no WhatsApp com IA e
               integração com Google Calendar.
