@@ -544,10 +544,16 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     console.log('Agent PDFs count:', agentPdfs?.length || 0);
     console.log('PDFs payload:', pdfsJson);
 
-    // Build the concatenated prompt from all agent instruction fields
-    const prompt = agent ? buildSystemMessage(agent) : '';
-
-    console.log('Prompt length:', prompt.length);
+    // Build the concatenated prompt from all agent instruction fields,
+    // injetando também o catálogo de mídias (fotos/PDFs) com regras de envio.
+    const photosForPrompt = (agentPhotos || [])
+      .filter((p: any) => !p.file_type || p.file_type === 'image')
+      .map((p: any) => ({ url: normalizeMediaUrl(p.url), description: p.description || '' }));
+    const pdfsForPrompt = (agentPdfs || []).map((p: any) => ({
+      url: normalizeMediaUrl(p.url),
+      description: p.description || '',
+    }));
+    const prompt = agent ? buildSystemMessage(agent, photosForPrompt, pdfsForPrompt) : '';
 
     // Extract the message text + remoteJid from payload (normalize for n8n workflow)
     const messages = payload.data?.messages || [payload.data];
