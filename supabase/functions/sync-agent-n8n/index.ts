@@ -213,15 +213,19 @@ serve(async (req) => {
     const photos = (mediaFiles || [])
       .filter((file: any) => !file.file_type || file.file_type === 'image')
       .map((file: any) => ({
-        url: normalizeMediaUrl(file.url),
+        url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'imagem-agente', 'jpg')),
         description: file.description || '',
+        mediaType: 'image' as const,
+        fileName: toSafeFileName(file.description, 'imagem-agente', 'jpg'),
       }));
 
     const pdfs = (mediaFiles || [])
       .filter((file: any) => file.file_type === 'pdf')
       .map((file: any) => ({
-        url: normalizeMediaUrl(file.url),
+        url: normalizeMediaUrl(file.url, toSafeFileName(file.description, 'documento-agente', 'pdf')),
         description: file.description || '',
+        mediaType: 'document' as const,
+        fileName: toSafeFileName(file.description, 'documento-agente', 'pdf'),
       }));
 
     // Build the concatenated system message with the agent media catalog
