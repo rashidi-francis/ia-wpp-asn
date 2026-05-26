@@ -78,9 +78,11 @@ export const ChatMessages = ({
   };
 
   const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    const root = scrollRef.current;
+    if (!root) return;
+    const viewport = root.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
+    const target = viewport ?? root;
+    target.scrollTop = target.scrollHeight;
   };
 
   const formatTime = (dateString: string) => {
