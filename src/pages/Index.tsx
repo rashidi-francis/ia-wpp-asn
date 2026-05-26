@@ -363,6 +363,16 @@ const Index = () => {
               >
                 Termos de Uso
               </a>
+              <span className="hidden sm:inline text-border">|</span>
+              <a
+                href="/apresentacao-chatasn.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="hover:text-primary transition-colors underline underline-offset-2"
+              >
+                Apresentação (PDF)
+              </a>
             </div>
             <p>© 2024 ChatASN — Ajudo Seu Negócio IA</p>
             <p className="mt-2">
