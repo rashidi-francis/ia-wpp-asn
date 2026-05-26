@@ -72,6 +72,16 @@ function buildSystemMessage(
 ): string {
   const sections: string[] = [];
 
+  // Regra global de estilo de mensagens (vale para TODOS os agentes, atuais e futuros)
+  sections.push(`## ESTILO DE MENSAGENS — REGRA GLOBAL OBRIGATÓRIA
+Esta regra vale para TODA resposta, sem exceção:
+- NUNCA envie "textão". Cada resposta deve ter NO MÁXIMO 500 caracteres (idealmente 1 a 3 frases curtas).
+- Envie UMA mensagem por vez e ESPERE o cliente responder antes de mandar a próxima informação. Não despeje várias coisas de uma vez.
+- Conversa estilo WhatsApp humano: curto, direto, natural, uma ideia por mensagem.
+- Se a resposta completa ficaria longa, resuma agora e ofereça aprofundar: ex. "Quer que eu te explique melhor?", "Posso te passar mais detalhes, quer?".
+- Não use listas longas nem parágrafos grandes. Não repita o que o cliente já disse.
+- Faça no máximo UMA pergunta por mensagem para guiar a conversa.`);
+
   if (agent.nome) {
     sections.push(`## Nome do Agente\n${agent.nome}`);
   }
