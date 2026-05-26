@@ -144,11 +144,14 @@ function buildSystemMessage(
 - NUNCA envie link, URL crua, "clique aqui" ou "baixar pelo link". Sempre use o marcador técnico abaixo.
 - A ação de enviar mídia é escrever exatamente uma linha neste formato, usando SOMENTE uma URL listada acima:
   [[ENVIAR_MIDIA:URL_COMPLETA_DA_LISTA]]
-- IMPORTANTE — ORDEM DE ENVIO: o sistema envia primeiro a MÍDIA e DEPOIS o seu texto. Por isso:
-  • NUNCA escreva frases no futuro tipo "vou enviar", "segue abaixo a foto", "te mando agora", "veja a imagem abaixo".
-  • SEMPRE escreva no passado/presente, como se a mídia já tivesse chegado: "Pronto! Acima está a foto do Produto X", "Aí está o catálogo que você pediu", "Esse é o modelo X, o que achou?".
-  • A estrutura ideal da resposta é: [[ENVIAR_MIDIA:URL]] na primeira linha, e depois uma frase curta confirmando o que foi enviado e dando continuidade à conversa.
-- Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com o marcador + uma frase pós-envio.
+- IMPORTANTE — ORDEM DE ENVIO: o sistema SEMPRE envia primeiro a MÍDIA (foto, imagem, PDF, documento, apresentação, folder, catálogo) e DEPOIS o seu texto. Isso vale para QUALQUER tipo de arquivo, sem exceção. Por isso:
+  • NUNCA escreva frases no futuro tipo "vou enviar", "vou te mandar", "segue abaixo", "te mando agora", "veja abaixo", "estou enviando", "irei enviar", "anexo abaixo". Isso confunde o cliente, que já recebeu o arquivo antes do texto.
+  • SEMPRE escreva no passado/presente, como se a mídia JÁ tivesse chegado (porque já chegou). Exemplos válidos para QUALQUER mídia:
+    - Foto: "Pronto! Aí está a foto do Produto X. O que achou?"
+    - PDF: "Pronto! Já te enviei a apresentação em PDF acima. Qualquer dúvida me chama!"
+    - Catálogo/folder: "Aí está o catálogo que você pediu. Quer que eu detalhe algum item?"
+  • A estrutura ideal da resposta é: [[ENVIAR_MIDIA:URL]] na primeira linha, e depois uma frase curta confirmando que o arquivo JÁ foi entregue e dando continuidade à conversa.
+- Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com o marcador + uma frase pós-envio (no passado, nunca no futuro).
 - O marcador é capturado por regex /\\[\\[ENVIAR_MIDIA:(.+?)\\]\\]/g e dispara /message/sendMedia/{instance}.
 - Para PDFs/documentos, o n8n envia como mediatype=document. Nunca trate PDF como image.
 - Para vários arquivos, use um marcador por linha (todos serão enviados antes do texto).
