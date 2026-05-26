@@ -43,19 +43,28 @@ function appendFileHintIfNeeded(url: string, fileName: string): string {
   return `${url.split('#')[0]}#${encodeURIComponent(fileName)}`;
 }
 
-function normalizeMediaUrl(rawUrl: string, fileName?: string): string {
+function normalizeMediaUrl(rawUrl: string, fileName?: string, kind: 'image' | 'document' = 'document'): string {
   if (!rawUrl) return rawUrl;
   const url = rawUrl.trim();
   try {
     let normalized = url;
+    // Extract Google Drive file ID
+    let driveId: string | null = null;
     const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (driveFileMatch) {
-      normalized = `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
-      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
-    }
     const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-    if (driveOpenMatch) {
-      normalized = `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+    const driveUcMatch = url.match(/drive\.google\.com\/uc\?[^#]*id=([a-zA-Z0-9_-]+)/);
+    if (driveFileMatch) driveId = driveFileMatch[1];
+    else if (driveOpenMatch) driveId = driveOpenMatch[1];
+    else if (driveUcMatch) driveId = driveUcMatch[1];
+
+    if (driveId) {
+      if (kind === 'image') {
+        // Reliable direct image binary (no virus-scan HTML page, no cookies)
+        normalized = `https://lh3.googleusercontent.com/d/${driveId}=w2000`;
+        return normalized; // file hint not needed for image binary
+      }
+      // For documents (PDF etc.) keep the uc?export=download form
+      normalized = `https://drive.google.com/uc?export=download&id=${driveId}`;
       return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
     }
     if (url.includes('dropbox.com')) {
