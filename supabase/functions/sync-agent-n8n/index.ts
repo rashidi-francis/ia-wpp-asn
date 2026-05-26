@@ -141,13 +141,17 @@ function buildSystemMessage(
 
     lines.push(`
 ### COMO RESPONDER QUANDO FOR ENVIAR MÍDIA
-- NUNCA envie link, URL crua, "clique aqui", "baixar pelo link" ou promessa tipo "vou enviar" sem o marcador.
+- NUNCA envie link, URL crua, "clique aqui" ou "baixar pelo link". Sempre use o marcador técnico abaixo.
 - A ação de enviar mídia é escrever exatamente uma linha neste formato, usando SOMENTE uma URL listada acima:
   [[ENVIAR_MIDIA:URL_COMPLETA_DA_LISTA]]
-- Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com uma frase curta + o marcador.
-- O marcador deve aparecer no texto final para o n8n capturar por regex /\[\[ENVIAR_MIDIA:(.+?)\]\]/g e chamar /message/sendMedia/{instance}.
-- Para PDFs/documentos, o n8n deve enviar como mediatype=document. Nunca trate PDF como image.
-- Para vários arquivos, use um marcador por linha.
+- IMPORTANTE — ORDEM DE ENVIO: o sistema envia primeiro a MÍDIA e DEPOIS o seu texto. Por isso:
+  • NUNCA escreva frases no futuro tipo "vou enviar", "segue abaixo a foto", "te mando agora", "veja a imagem abaixo".
+  • SEMPRE escreva no passado/presente, como se a mídia já tivesse chegado: "Pronto! Acima está a foto do Produto X", "Aí está o catálogo que você pediu", "Esse é o modelo X, o que achou?".
+  • A estrutura ideal da resposta é: [[ENVIAR_MIDIA:URL]] na primeira linha, e depois uma frase curta confirmando o que foi enviado e dando continuidade à conversa.
+- Se o cliente pedir "foto", "imagem", "pdf", "apresentação", "folder", "catálogo", "portfólio" ou "tabela" e houver arquivo relacionado acima, responda com o marcador + uma frase pós-envio.
+- O marcador é capturado por regex /\\[\\[ENVIAR_MIDIA:(.+?)\\]\\]/g e dispara /message/sendMedia/{instance}.
+- Para PDFs/documentos, o n8n envia como mediatype=document. Nunca trate PDF como image.
+- Para vários arquivos, use um marcador por linha (todos serão enviados antes do texto).
 - Se não existir arquivo relacionado na lista acima, diga que não possui esse arquivo cadastrado; não invente URL.`);
 
     sections.push(lines.join('\n'));
