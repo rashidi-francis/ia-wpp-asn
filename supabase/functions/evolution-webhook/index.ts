@@ -605,7 +605,7 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
     const photosForPrompt = (agentPhotos || [])
       .filter((p: any) => !p.file_type || p.file_type === 'image')
       .map((p: any) => ({
-        url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg')),
+        url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg'), 'image'),
         description: p.description || '',
         mediaType: 'image' as const,
         mediatype: 'image' as const,
