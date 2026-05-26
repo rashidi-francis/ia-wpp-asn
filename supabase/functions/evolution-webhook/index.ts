@@ -289,8 +289,21 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
       } else if (messageData.extendedTextMessage?.text) {
         content = messageData.extendedTextMessage.text;
       } else if (messageData.imageMessage) {
-        const cap = messageData.imageMessage.caption?.trim();
+        const img = messageData.imageMessage;
+        const cap = img.caption?.trim();
         content = cap ? `[Imagem] ${cap}` : '[Imagem enviada]';
+        // Detailed debug for outgoing images (sendMedia from n8n)
+        if (isFromMe) {
+          console.log('[SEND_MEDIA DEBUG imageMessage]', JSON.stringify({
+            remoteJid,
+            url: img.url,
+            directPath: img.directPath,
+            mimetype: img.mimetype,
+            fileLength: img.fileLength,
+            mediaKey: img.mediaKey ? '<<present>>' : '<<missing>>',
+            jpegThumbnail: img.jpegThumbnail ? '<<present>>' : '<<missing>>',
+          }));
+        }
       } else if (messageData.videoMessage) {
         const cap = messageData.videoMessage.caption?.trim();
         content = cap ? `[Vídeo] ${cap}` : '[Vídeo enviado]';
