@@ -667,19 +667,51 @@ const Dashboard = () => {
                       </DropdownMenu>
                     </div>
                     <CardHeader>
-                      <CardTitle className="text-lg pr-8">
-                        {agent.nome || "Sem nome"}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {agent.quem_eh || "Sem descrição"}
-                      </CardDescription>
+                      <div className="flex items-start gap-4 pr-8">
+                        <div className="relative shrink-0 group/avatar">
+                          <div className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-primary via-accent to-primary opacity-70 blur-md group-hover/avatar:opacity-100 group-hover/avatar:blur-lg transition-all duration-500 animate-pulse" />
+                          <label
+                            htmlFor={`avatar-upload-${agent.id}`}
+                            className="relative block h-16 w-16 rounded-full overflow-hidden ring-2 ring-primary/60 bg-background cursor-pointer shadow-glow hover:ring-primary transition-all"
+                            title="Clique para alterar a foto"
+                          >
+                            {agent.avatar_url ? (
+                              <img
+                                src={agent.avatar_url}
+                                alt={agent.nome || "Agente"}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                                <User className="h-7 w-7 text-primary" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-background/70 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity">
+                              <Image className="h-5 w-5 text-primary" />
+                            </div>
+                          </label>
+                          <input
+                            id={`avatar-upload-${agent.id}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleAvatarUpload(agent, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-lg truncate">
+                            {agent.nome || "Sem nome"}
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {agent.quem_eh || "Sem descrição"}
+                          </CardDescription>
+                        </div>
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Última edição:{" "}
-                        {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </CardContent>
                   </Card>
                 ))}
               </div>
