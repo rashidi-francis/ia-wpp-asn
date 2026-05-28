@@ -712,6 +712,12 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Última edição:{" "}
+                        {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
