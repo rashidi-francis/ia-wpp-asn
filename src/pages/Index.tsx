@@ -264,8 +264,9 @@ const Index = () => {
                 Atendimento 24/7
               </h3>
               <p className="text-sm text-muted-foreground">
-                Seus clientes recebem resposta imediata a qualquer hora do dia
-                ou da noite, mesmo fora do horário comercial.
+                Seus clientes recebem resposta imediata 24 horas por dia / 7
+                dias na semana, ou seja: a qualquer hora do dia ou da noite,
+                mesmo fora do horário comercial.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
