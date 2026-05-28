@@ -24,6 +24,30 @@ type AgentMedia = {
   fileName: string;
 };
 
+// Calcula próximo horário válido (+delayMs) respeitando quiet hours (20h-9h BRT) e domingo.
+function computeFollowupDueAt(delayMs: number): Date {
+  const raw = new Date(Date.now() + delayMs);
+  // Brasília time (UTC-3)
+  const brt = new Date(raw.getTime() - 3 * 60 * 60 * 1000);
+  const hour = brt.getUTCHours();
+  const weekday = brt.getUTCDay();
+
+  let due = raw;
+  if (weekday === 0 || hour >= 20 || hour < 9) {
+    const next = new Date(raw);
+    if (hour >= 20) {
+      next.setUTCDate(next.getUTCDate() + 1);
+    }
+    next.setUTCHours(12, 0, 0, 0); // 9h BRT = 12h UTC
+    const nbrt = new Date(next.getTime() - 3 * 60 * 60 * 1000);
+    if (nbrt.getUTCDay() === 0) {
+      next.setUTCDate(next.getUTCDate() + 1);
+    }
+    due = next;
+  }
+  return due;
+}
+
 function toSafeFileName(description: string | null | undefined, fallback: string, extension: string): string {
   const base = (description || fallback)
     .normalize('NFD')
