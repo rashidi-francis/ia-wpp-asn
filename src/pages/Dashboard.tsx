@@ -248,6 +248,36 @@ const Dashboard = () => {
     }
   };
 
+  const handleAvatarUpload = async (agent: Agent, file: File) => {
+    if (!session?.user || !file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ variant: "destructive", title: "Arquivo inválido", description: "Selecione uma imagem." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Imagem muito grande", description: "Máximo 5MB." });
+      return;
+    }
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${session.user.id}/${agent.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("agent-avatars")
+        .upload(path, file, { upsert: true, cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("agent-avatars").getPublicUrl(path);
+      const { error: updErr } = await supabase
+        .from("agents")
+        .update({ avatar_url: pub.publicUrl })
+        .eq("id", agent.id);
+      if (updErr) throw updErr;
+      setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, avatar_url: pub.publicUrl } : a)));
+      toast({ title: "Foto atualizada!", description: "O avatar do agente foi atualizado." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro no upload", description: err.message });
+    }
+  };
+
   const handleDeleteAgent = async () => {
     if (!agentToDelete) return;
 
