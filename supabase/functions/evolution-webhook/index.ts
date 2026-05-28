@@ -888,53 +888,9 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       }
     }
 
-    // ===== AI RESPONDED → AGENDA O PRIMEIRO FOLLOW-UP =====
-    // Fluxo: lead manda msg → IA responde → agenda follow-up #1 para +10min.
-    // A função process-followups (cron a cada 5min) cuida do disparo respeitando
-    // quiet hours (20h-9h BRT) e domingo.
-    if (conversationId) {
-      // Calcula próximo horário válido (+10min, mas pula quiet hours / domingo)
-      const FIRST_FOLLOWUP_DELAY_MS = 10 * 60 * 1000;
-      const rawDue = new Date(Date.now() + FIRST_FOLLOWUP_DELAY_MS);
-
-      // Brasília time (UTC-3)
-      const brt = new Date(rawDue.getTime() - 3 * 60 * 60 * 1000);
-      const hour = brt.getUTCHours();
-      const weekday = brt.getUTCDay();
-
-      let dueAt = rawDue;
-      // Se domingo ou quiet hours (20h-9h BRT) → reagenda pra 9h BRT do próximo dia válido
-      if (weekday === 0 || hour >= 20 || hour < 9) {
-        const next = new Date(rawDue);
-        if (hour >= 20) {
-          next.setUTCDate(next.getUTCDate() + 1);
-        }
-        next.setUTCHours(12, 0, 0, 0); // 9h BRT = 12h UTC
-        // Se ainda for domingo, joga pra segunda
-        const nbrt = new Date(next.getTime() - 3 * 60 * 60 * 1000);
-        if (nbrt.getUTCDay() === 0) {
-          next.setUTCDate(next.getUTCDate() + 1);
-        }
-        dueAt = next;
-      }
-
-      const { error: updateError } = await supabase
-        .from('whatsapp_conversations')
-        .update({
-          last_message_from: 'ai',
-          status: 'open',
-          followup_due_at: dueAt.toISOString(),
-          followup_sent: false,
-          followup_count: 0,
-        })
-        .eq('id', conversationId);
-
-      if (updateError) {
-        console.error('Error updating conversation after AI reply:', updateError);
-      } else {
-        console.log(`Scheduled follow-up #1 for conversation ${conversationId} at ${dueAt.toISOString()}`);
-      }
-    }
+    // Follow-up scheduling agora acontece em saveMessageToDatabase quando a
+    // mensagem fromMe=true da IA chega de volta via webhook da Evolution.
+    // Isso cobre tanto n8n "Respond Immediately" quanto resposta no HTTP body.
 
   } catch (error) {
     console.error('Error forwarding message to n8n:', error);
