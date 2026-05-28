@@ -57,6 +57,7 @@ interface Agent {
   quem_eh: string | null;
   o_que_faz: string | null;
   objetivo: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -244,6 +245,36 @@ const Dashboard = () => {
         title: "Erro ao criar agente",
         description: error.message,
       });
+    }
+  };
+
+  const handleAvatarUpload = async (agent: Agent, file: File) => {
+    if (!session?.user || !file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ variant: "destructive", title: "Arquivo inválido", description: "Selecione uma imagem." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Imagem muito grande", description: "Máximo 5MB." });
+      return;
+    }
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${session.user.id}/${agent.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("agent-avatars")
+        .upload(path, file, { upsert: true, cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("agent-avatars").getPublicUrl(path);
+      const { error: updErr } = await supabase
+        .from("agents")
+        .update({ avatar_url: pub.publicUrl })
+        .eq("id", agent.id);
+      if (updErr) throw updErr;
+      setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, avatar_url: pub.publicUrl } : a)));
+      toast({ title: "Foto atualizada!", description: "O avatar do agente foi atualizado." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro no upload", description: err.message });
     }
   };
 
@@ -636,12 +667,50 @@ const Dashboard = () => {
                       </DropdownMenu>
                     </div>
                     <CardHeader>
-                      <CardTitle className="text-lg pr-8">
-                        {agent.nome || "Sem nome"}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {agent.quem_eh || "Sem descrição"}
-                      </CardDescription>
+                      <div className="flex items-start gap-4 pr-8">
+                        <div className="relative shrink-0 group/avatar">
+                          <div className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-primary via-accent to-primary opacity-70 blur-md group-hover/avatar:opacity-100 group-hover/avatar:blur-lg transition-all duration-500 animate-pulse" />
+                          <label
+                            htmlFor={`avatar-upload-${agent.id}`}
+                            className="relative block h-16 w-16 rounded-full overflow-hidden ring-2 ring-primary/60 bg-background cursor-pointer shadow-glow hover:ring-primary transition-all"
+                            title="Clique para alterar a foto"
+                          >
+                            {agent.avatar_url ? (
+                              <img
+                                src={agent.avatar_url}
+                                alt={agent.nome || "Agente"}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                                <User className="h-7 w-7 text-primary" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-background/70 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity">
+                              <Image className="h-5 w-5 text-primary" />
+                            </div>
+                          </label>
+                          <input
+                            id={`avatar-upload-${agent.id}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleAvatarUpload(agent, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-lg truncate">
+                            {agent.nome || "Sem nome"}
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {agent.quem_eh || "Sem descrição"}
+                          </CardDescription>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
