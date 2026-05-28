@@ -57,6 +57,7 @@ interface Agent {
   quem_eh: string | null;
   o_que_faz: string | null;
   objetivo: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
