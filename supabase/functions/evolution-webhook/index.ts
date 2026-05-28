@@ -377,6 +377,21 @@ async function saveMessageToDatabase(supabase: any, instance: any, data: any): P
           updateData.followup_sent = false;
           updateData.followup_count = 0;
           console.log(`Lead responded in conversation ${conversationId}, cancelling follow-up`);
+        } else {
+          // ===== FOLLOW-UP LOGIC: AI RESPONDED =====
+          // Toda mensagem fromMe = IA respondeu → agenda o primeiro follow-up
+          // (+10min, respeitando quiet hours 20h-9h BRT e domingo).
+          // Só agenda se ainda não tem follow-up agendado/enviado E o contador < 3.
+          const alreadyScheduled = existingConversation.followup_due_at != null;
+          const alreadySent = existingConversation.followup_sent === true;
+          const countReached = (existingConversation.followup_count || 0) >= 3;
+          updateData.last_message_from = 'ai';
+          updateData.status = 'open';
+          if (!alreadyScheduled && !alreadySent && !countReached) {
+            updateData.followup_due_at = computeFollowupDueAt(10 * 60 * 1000).toISOString();
+            updateData.followup_sent = false;
+            console.log(`AI responded in conversation ${conversationId}, scheduling follow-up #1 at ${updateData.followup_due_at}`);
+          }
         }
         
         await supabase
