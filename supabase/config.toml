@@ -17,3 +17,13 @@ verify_jwt = true
 
 [functions.google-calendar-oauth]
 verify_jwt = false
+
+[functions.meta-whatsapp-webhook]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.dispatch-message]
+verify_jwt = false
+
