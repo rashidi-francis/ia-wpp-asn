@@ -1,0 +1,469 @@
+// ============================================================================
+// ChatASN — Motor multicanal compartilhado (Evolution / Meta Cloud / Telegram)
+// ----------------------------------------------------------------------------
+// Mantém UMA implementação da normalização de mensagens, construção do payload
+// do n8n e do envio por canal. Usado por telegram-webhook, meta-whatsapp-webhook
+// e dispatch-message. O evolution-webhook permanece independente (já em produção).
+// ============================================================================
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+export type Provider = 'evolution' | 'meta_cloud' | 'telegram';
+
+export type AgentMedia = {
+  url: string;
+  description: string | null;
+  mediaType: 'image' | 'document';
+  mediatype: 'image' | 'document';
+  fileName: string;
+};
+
+// ---------------------------------------------------------------------------
+// Follow-up: mesmo cálculo do evolution-webhook (quiet hours 20h-9h BRT + domingo)
+// ---------------------------------------------------------------------------
+export function computeFollowupDueAt(delayMs: number): Date {
+  const raw = new Date(Date.now() + delayMs);
+  const brt = new Date(raw.getTime() - 3 * 60 * 60 * 1000);
+  const hour = brt.getUTCHours();
+  const weekday = brt.getUTCDay();
+
+  let due = raw;
+  if (weekday === 0 || hour >= 20 || hour < 9) {
+    const next = new Date(raw);
+    if (hour >= 20) next.setUTCDate(next.getUTCDate() + 1);
+    next.setUTCHours(12, 0, 0, 0); // 9h BRT = 12h UTC
+    const nbrt = new Date(next.getTime() - 3 * 60 * 60 * 1000);
+    if (nbrt.getUTCDay() === 0) next.setUTCDate(next.getUTCDate() + 1);
+    due = next;
+  }
+  return due;
+}
+
+// ---------------------------------------------------------------------------
+// Normalização de URLs de mídia (Google Drive / Dropbox) — igual ao evolution-webhook
+// ---------------------------------------------------------------------------
+export function toSafeFileName(description: string | null | undefined, fallback: string, extension: string): string {
+  const base = (description || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 54)
+    .toLowerCase() || fallback;
+  return `${base}.${extension}`;
+}
+
+function appendFileHintIfNeeded(url: string, fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (!ext || url.toLowerCase().includes(`.${ext}`)) return url;
+  return `${url.split('#')[0]}#${encodeURIComponent(fileName)}`;
+}
+
+export function normalizeMediaUrl(rawUrl: string, fileName?: string, kind: 'image' | 'document' = 'document'): string {
+  if (!rawUrl) return rawUrl;
+  const url = rawUrl.trim();
+  try {
+    let normalized = url;
+    let driveId: string | null = null;
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    const driveUcMatch = url.match(/drive\.google\.com\/uc\?[^#]*id=([a-zA-Z0-9_-]+)/);
+    if (driveFileMatch) driveId = driveFileMatch[1];
+    else if (driveOpenMatch) driveId = driveOpenMatch[1];
+    else if (driveUcMatch) driveId = driveUcMatch[1];
+
+    if (driveId) {
+      if (kind === 'image') return `https://lh3.googleusercontent.com/d/${driveId}=w2000`;
+      normalized = `https://drive.google.com/uc?export=download&id=${driveId}`;
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    if (url.includes('dropbox.com')) {
+      normalized = url.replace(/([?&])dl=0/, '$1dl=1').replace(/\?$/, '');
+      return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+    }
+    return fileName ? appendFileHintIfNeeded(normalized, fileName) : normalized;
+  } catch {
+    return url;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// System message (prompt) — igual ao evolution-webhook (paridade entre canais)
+// ---------------------------------------------------------------------------
+export function buildSystemMessage(agent: any, photos: AgentMedia[] = [], pdfs: AgentMedia[] = []): string {
+  const sections: string[] = [];
+  if (agent.nome) sections.push(`## Nome do Agente\n${agent.nome}`);
+  if (agent.quem_eh) sections.push(`## Quem é o Agente\n${agent.quem_eh}`);
+  if (agent.o_que_faz) sections.push(`## O que o Agente Faz\n${agent.o_que_faz}`);
+  if (agent.objetivo) sections.push(`## Objetivo do Agente\n${agent.objetivo}`);
+  if (agent.como_deve_responder) sections.push(`## Como Deve Responder\n${agent.como_deve_responder}`);
+  if (agent.instrucoes_agente) sections.push(`## Instruções do Agente\n${agent.instrucoes_agente}`);
+  if (agent.topicos_evitar) sections.push(`## Tópicos a Evitar\n${agent.topicos_evitar}`);
+  if (agent.palavras_evitar) sections.push(`## Palavras a Evitar\n${agent.palavras_evitar}`);
+  if (agent.links_permitidos) sections.push(`## Links Permitidos\n${agent.links_permitidos}`);
+  if (agent.regras_personalizadas) sections.push(`## Regras Personalizadas\n${agent.regras_personalizadas}`);
+  if (agent.resposta_padrao_erro) sections.push(`## Resposta Padrão de Erro\n${agent.resposta_padrao_erro}`);
+  if (agent.resposta_secundaria_erro) sections.push(`## Resposta Secundária de Erro\n${agent.resposta_secundaria_erro}`);
+
+  // Regra global ChatASN: respostas curtas, uma por vez (mesma regra do sync-agent-n8n)
+  sections.push(
+    '## Estilo de Resposta (OBRIGATÓRIO)\n' +
+    'NUNCA envie "textão". Cada resposta deve ter NO MÁXIMO 500 caracteres. ' +
+    'Envie UMA mensagem por vez e ESPERE o cliente responder antes de mandar a próxima.',
+  );
+
+  if (photos.length > 0 || pdfs.length > 0) {
+    const lines: string[] = [];
+    lines.push('## Mídias Disponíveis para Envio');
+    lines.push('Você possui os arquivos abaixo (imagens e/ou PDFs) e pode enviá-los diretamente ao cliente quando ele pedir OU quando for natural/útil enviar.');
+    if (photos.length > 0) {
+      lines.push('\n### Imagens / Fotos');
+      photos.forEach((p, i) => {
+        const desc = (p.description || '').trim() || 'sem descrição';
+        lines.push(`${i + 1}. ${desc}\n   Tipo: image\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
+      });
+    }
+    if (pdfs.length > 0) {
+      lines.push('\n### PDFs / Documentos');
+      pdfs.forEach((p, i) => {
+        const desc = (p.description || '').trim() || 'sem descrição';
+        lines.push(`${i + 1}. ${desc}\n   Tipo: document\n   Nome: ${p.fileName}\n   URL: ${p.url}`);
+      });
+    }
+    lines.push(`
+### Regras OBRIGATÓRIAS de envio de mídia
+1. NUNCA envie a URL crua, nem "clique aqui". O cliente NÃO deve ver link nenhum.
+2. Para enviar o arquivo em si, escreva em uma linha SEPARADA, exatamente neste formato:
+   [[ENVIAR_MIDIA:URL_COMPLETA_AQUI]]
+3. Use SOMENTE URLs do catálogo acima. Se não houver arquivo correspondente, diga que não possui — NÃO invente URL.`);
+    sections.push(lines.join('\n'));
+  }
+  return sections.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Busca dados do agente para montar o payload do n8n (prompt, fotos, pdfs, calendar)
+// ---------------------------------------------------------------------------
+export async function buildAgentN8nExtras(supabase: any, agentId: string) {
+  const { data: agent } = await supabase.from('agents').select('*').eq('id', agentId).single();
+  const { data: calendarSettings } = await supabase
+    .from('agent_calendar_settings').select('*').eq('agent_id', agentId).maybeSingle();
+  const { data: agentPhotos } = await supabase
+    .from('agent_photos').select('url, description, file_type').eq('agent_id', agentId);
+  const { data: agentPdfs } = await supabase
+    .from('agent_photos').select('url, description').eq('agent_id', agentId).eq('file_type', 'pdf');
+
+  const photosForPrompt: AgentMedia[] = (agentPhotos || [])
+    .filter((p: any) => !p.file_type || p.file_type === 'image')
+    .map((p: any) => ({
+      url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'imagem-agente', 'jpg'), 'image'),
+      description: p.description || '',
+      mediaType: 'image', mediatype: 'image',
+      fileName: toSafeFileName(p.description, 'imagem-agente', 'jpg'),
+    }));
+  const pdfsForPrompt: AgentMedia[] = (agentPdfs || []).map((p: any) => ({
+    url: normalizeMediaUrl(p.url, toSafeFileName(p.description, 'documento-agente', 'pdf')),
+    description: p.description || '',
+    mediaType: 'document', mediatype: 'document',
+    fileName: toSafeFileName(p.description, 'documento-agente', 'pdf'),
+  }));
+
+  return {
+    agent,
+    prompt: agent ? buildSystemMessage(agent, photosForPrompt, pdfsForPrompt) : '',
+    photosJson: JSON.stringify(photosForPrompt),
+    pdfsJson: JSON.stringify(pdfsForPrompt),
+    calendar_enabled: calendarSettings?.enabled && calendarSettings?.google_refresh_token ? 'true' : 'false',
+    calendar_refresh_token: calendarSettings?.google_refresh_token || '',
+    calendar_id: calendarSettings?.google_calendar_id || 'primary',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Upsert da conversa + grava mensagem recebida (mesma lógica de follow-up)
+// ---------------------------------------------------------------------------
+export async function saveIncomingMessage(
+  supabase: any,
+  args: {
+    agentId: string;
+    provider: Provider;
+    remoteJid: string;
+    contactName: string | null;
+    contactPhone: string | null;
+    content: string;
+    messageId?: string | null;
+    messageType?: string;
+  },
+): Promise<{ conversationId: string; agentEnabled: boolean } | null> {
+  try {
+    const { agentId, provider, remoteJid, contactName, contactPhone, content } = args;
+    const { data: existing } = await supabase
+      .from('whatsapp_conversations')
+      .select('*')
+      .eq('agent_id', agentId)
+      .eq('remote_jid', remoteJid)
+      .maybeSingle();
+
+    let conversationId: string;
+    let agentEnabled = true;
+
+    if (existing) {
+      conversationId = existing.id;
+      agentEnabled = existing.agent_enabled ?? true;
+      const updateData: any = {
+        last_message: content,
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        provider,
+        // lead respondeu → cancela follow-up
+        unread_count: (existing.unread_count || 0) + 1,
+        last_message_from: 'lead',
+        status: 'open',
+        followup_due_at: null,
+        followup_sent: false,
+        followup_count: 0,
+      };
+      if (contactName && contactName !== existing.contact_name) updateData.contact_name = contactName;
+      await supabase.from('whatsapp_conversations').update(updateData).eq('id', conversationId);
+    } else {
+      const { data: created, error } = await supabase
+        .from('whatsapp_conversations')
+        .insert({
+          agent_id: agentId,
+          remote_jid: remoteJid,
+          provider,
+          contact_name: contactName,
+          contact_phone: contactPhone,
+          last_message: content,
+          last_message_at: new Date().toISOString(),
+          unread_count: 1,
+          agent_enabled: true,
+          status: 'open',
+          last_message_from: 'lead',
+          followup_due_at: null,
+          followup_sent: false,
+          followup_count: 0,
+        })
+        .select()
+        .single();
+      if (error || !created) {
+        console.error('saveIncomingMessage: error creating conversation', error);
+        return null;
+      }
+      conversationId = created.id;
+    }
+
+    await supabase.from('whatsapp_messages').insert({
+      conversation_id: conversationId,
+      message_id: args.messageId || null,
+      content,
+      is_from_me: false,
+      message_type: args.messageType || 'text',
+      sender_type: 'client',
+    });
+
+    return { conversationId, agentEnabled };
+  } catch (e) {
+    console.error('saveIncomingMessage error:', e);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Envia o payload pro n8n e devolve a resposta de texto (se houver no HTTP)
+// ---------------------------------------------------------------------------
+export async function forwardToN8n(n8nBody: Record<string, any>): Promise<string | null> {
+  const N8N_MESSAGES_WEBHOOK_URL = Deno.env.get('N8N_MESSAGES_WEBHOOK_URL');
+  if (!N8N_MESSAGES_WEBHOOK_URL) {
+    console.error('N8N_MESSAGES_WEBHOOK_URL is not configured');
+    return null;
+  }
+  try {
+    const response = await fetch(N8N_MESSAGES_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(n8nBody),
+    });
+    const raw = await response.text();
+    if (!response.ok) {
+      console.error('n8n webhook error:', response.status, raw);
+      return null;
+    }
+    const trimmed = raw?.trim?.() ?? '';
+    let replyText: string | null = null;
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        replyText =
+          (typeof parsed?.reply === 'string' && parsed.reply) ||
+          (typeof parsed?.text === 'string' && parsed.text) ||
+          (typeof parsed?.message === 'string' && parsed.message) ||
+          null;
+      } catch {
+        replyText = trimmed;
+      }
+    }
+    if (replyText) {
+      const lower = replyText.toLowerCase().trim();
+      const n8nStatusPatterns = [
+        'workflow was started', 'workflow has started', 'workflow started',
+        'workflow was executed', 'workflow executed', 'message received',
+        'webhook received', 'accepted', 'ok',
+      ];
+      if (n8nStatusPatterns.some((p) => lower === p || lower.startsWith(p))) {
+        console.log(`Ignoring n8n status response: "${replyText.substring(0, 80)}"`);
+        replyText = null;
+      }
+    }
+    return replyText;
+  } catch (e) {
+    console.error('forwardToN8n error:', e);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ENVIO POR CANAL (resolve provider e dispara pelo conector certo)
+// ---------------------------------------------------------------------------
+export async function sendViaProvider(
+  supabase: any,
+  conversation: { id: string; agent_id: string; provider: string; remote_jid: string; contact_phone: string | null },
+  content: string,
+): Promise<{ success: boolean; messageId: string | null; error?: string }> {
+  const provider = (conversation.provider || 'evolution') as Provider;
+
+  if (provider === 'telegram') {
+    const { data: inst } = await supabase
+      .from('telegram_instances').select('*').eq('agent_id', conversation.agent_id).maybeSingle();
+    if (!inst?.bot_token) return { success: false, messageId: null, error: 'Telegram bot não configurado' };
+    const chatId = conversation.remote_jid.replace(/^tg:/, '');
+    return await sendTelegramMessage(inst.bot_token, chatId, content);
+  }
+
+  if (provider === 'meta_cloud') {
+    const { data: inst } = await supabase
+      .from('meta_whatsapp_instances').select('*').eq('agent_id', conversation.agent_id).maybeSingle();
+    if (!inst?.access_token || !inst?.phone_number_id) {
+      return { success: false, messageId: null, error: 'Instância Meta não configurada' };
+    }
+    const to = (conversation.contact_phone || conversation.remote_jid.split('@')[0]).replace(/\D/g, '');
+    return await sendMetaText(inst.phone_number_id, inst.access_token, to, content);
+  }
+
+  // default: evolution
+  const { data: inst } = await supabase
+    .from('whatsapp_instances').select('*').eq('agent_id', conversation.agent_id).eq('status', 'connected').maybeSingle();
+  if (!inst?.instance_name) return { success: false, messageId: null, error: 'Instância WhatsApp não conectada' };
+  const number = conversation.remote_jid.split('@')[0];
+  return await sendEvolutionText(inst.instance_name, number, content);
+}
+
+export async function sendEvolutionText(instanceName: string, number: string, text: string) {
+  const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
+  const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    return { success: false, messageId: null, error: 'Evolution API não configurada' };
+  }
+  const cleanUrl = EVOLUTION_API_URL.replace(/\/+$/, '').replace(/\/manager$/i, '');
+  const resp = await fetch(`${cleanUrl}/message/sendText/${instanceName}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY },
+    body: JSON.stringify({ number, text, options: { presence: 'composing', linkPreview: true } }),
+  });
+  const body = await resp.text();
+  if (!resp.ok) {
+    console.error('Evolution sendText error:', resp.status, body);
+    return { success: false, messageId: null, error: 'Falha no envio via Evolution' };
+  }
+  let messageId: string | null = null;
+  try { const p = JSON.parse(body); messageId = p?.key?.id || p?.id || null; } catch { /* ignore */ }
+  return { success: true, messageId };
+}
+
+export async function sendMetaText(phoneNumberId: string, accessToken: string, to: string, text: string) {
+  const resp = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'text',
+      text: { preview_url: true, body: text },
+    }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const err = (data as any)?.error?.message || `HTTP ${resp.status}`;
+    console.error('Meta sendText error:', resp.status, JSON.stringify(data));
+    return { success: false, messageId: null, error: err };
+  }
+  const messageId = (data as any)?.messages?.[0]?.id || null;
+  return { success: true, messageId };
+}
+
+export async function sendTelegramMessage(botToken: string, chatId: string, text: string) {
+  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !(data as any)?.ok) {
+    const err = (data as any)?.description || `HTTP ${resp.status}`;
+    console.error('Telegram sendMessage error:', resp.status, JSON.stringify(data));
+    return { success: false, messageId: null, error: err };
+  }
+  const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
+  return { success: true, messageId };
+}
+
+// ---------------------------------------------------------------------------
+// Salva resposta da IA e atualiza a conversa (agenda follow-up #1)
+// ---------------------------------------------------------------------------
+export async function saveOutgoingMessage(
+  supabase: any,
+  conversationId: string,
+  content: string,
+  messageId: string | null,
+  senderType: 'ai' | 'human' = 'ai',
+) {
+  await supabase.from('whatsapp_messages').insert({
+    conversation_id: conversationId,
+    message_id: messageId,
+    content,
+    is_from_me: true,
+    message_type: 'text',
+    sender_type: senderType,
+  });
+
+  const { data: conv } = await supabase
+    .from('whatsapp_conversations')
+    .select('followup_due_at, followup_sent, followup_count')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  const updateData: any = {
+    last_message: content,
+    last_message_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Só a IA agenda follow-up; mensagem humana não inicia sequência automática
+  if (senderType === 'ai' && conv) {
+    const alreadyScheduled = conv.followup_due_at != null;
+    const alreadySent = conv.followup_sent === true;
+    const countReached = (conv.followup_count || 0) >= 3;
+    updateData.last_message_from = 'ai';
+    updateData.status = 'open';
+    if (!alreadyScheduled && !alreadySent && !countReached) {
+      updateData.followup_due_at = computeFollowupDueAt(10 * 60 * 1000).toISOString();
+      updateData.followup_sent = false;
+    }
+  }
+
+  await supabase.from('whatsapp_conversations').update(updateData).eq('id', conversationId);
+}

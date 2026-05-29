@@ -474,6 +474,45 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_instances: {
+        Row: {
+          agent_id: string
+          bot_name: string | null
+          bot_token: string
+          bot_username: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          status: string
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          agent_id: string
+          bot_name?: string | null
+          bot_token: string
+          bot_username?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Update: {
+          agent_id?: string
+          bot_name?: string | null
+          bot_token?: string
+          bot_username?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -509,6 +548,7 @@ export type Database = {
           last_message: string | null
           last_message_at: string | null
           last_message_from: string | null
+          provider: string
           remote_jid: string
           status: string | null
           unread_count: number | null
@@ -527,6 +567,7 @@ export type Database = {
           last_message?: string | null
           last_message_at?: string | null
           last_message_from?: string | null
+          provider?: string
           remote_jid: string
           status?: string | null
           unread_count?: number | null
@@ -545,6 +586,7 @@ export type Database = {
           last_message?: string | null
           last_message_at?: string | null
           last_message_from?: string | null
+          provider?: string
           remote_jid?: string
           status?: string | null
           unread_count?: number | null
