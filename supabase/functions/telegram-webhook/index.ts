@@ -133,6 +133,7 @@ serve(async (req) => {
 
 
     const n8nReplyText = await forwardToN8n(n8nBody);
+    const replyText = n8nReplyText
       ? appendRelevantMediaMarkerIfMissing(n8nReplyText, messageForN8n, extras.photosJson, extras.pdfsJson)
       : null;
     if (replyText) {
