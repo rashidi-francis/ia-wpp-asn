@@ -451,36 +451,106 @@ function isImageUrl(url: string): boolean {
     || url.includes('lh3.googleusercontent.com');
 }
 
-export async function sendTelegramPhoto(botToken: string, chatId: string, photoUrl: string, caption?: string) {
-  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption || undefined }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !(data as any)?.ok) {
-    const err = (data as any)?.description || `HTTP ${resp.status}`;
-    console.error('Telegram sendPhoto error:', resp.status, JSON.stringify(data));
-    return { success: false, messageId: null, error: err };
+// Baixa os bytes da mídia (com retry) para subir direto ao Telegram via multipart.
+// Enviar bytes é MUITO mais confiável do que passar a URL e deixar o Telegram baixar
+// (ex.: .webp em alguns hosts faz o Telegram resetar a conexão / falhar o download).
+async function fetchMediaBytes(url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (ChatASN)' } });
+      if (!resp.ok) {
+        console.error('fetchMediaBytes HTTP error:', resp.status, url);
+      } else {
+        const buf = new Uint8Array(await resp.arrayBuffer());
+        const contentType = resp.headers.get('content-type') || 'application/octet-stream';
+        if (buf.byteLength > 0) return { bytes: buf, contentType };
+      }
+    } catch (e) {
+      console.error(`fetchMediaBytes attempt ${attempt + 1} failed:`, (e as Error).message, url);
+    }
+    await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
   }
-  const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
-  return { success: true, messageId };
+  return null;
+}
+
+function fileNameFromUrl(url: string, fallbackExt: string): string {
+  const clean = url.split(/[?#]/)[0];
+  const last = clean.substring(clean.lastIndexOf('/') + 1);
+  return last && last.includes('.') ? last : `arquivo.${fallbackExt}`;
+}
+
+// POST multipart para o Telegram com retry em erros de conexão.
+async function telegramUpload(
+  botToken: string, method: 'sendPhoto' | 'sendDocument',
+  chatId: string, field: 'photo' | 'document', blob: Blob, fileName: string, caption?: string,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const form = new FormData();
+      form.append('chat_id', chatId);
+      if (caption) form.append('caption', caption);
+      form.append(field, blob, fileName);
+      const resp = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+        method: 'POST', body: form,
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && (data as any)?.ok) {
+        const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
+        return { success: true, messageId };
+      }
+      const err = (data as any)?.description || `HTTP ${resp.status}`;
+      console.error(`Telegram ${method} error:`, resp.status, JSON.stringify(data));
+      // Erro do lado do Telegram (não de conexão): não adianta repetir
+      return { success: false, messageId: null, error: err };
+    } catch (e) {
+      console.error(`Telegram ${method} attempt ${attempt + 1} connection error:`, (e as Error).message);
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  return { success: false, messageId: null, error: 'connection error' };
+}
+
+export async function sendTelegramPhoto(botToken: string, chatId: string, photoUrl: string, caption?: string) {
+  const media = await fetchMediaBytes(photoUrl);
+  if (!media) {
+    // Último recurso: deixa o Telegram tentar baixar a URL
+    const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption || undefined }),
+    }).catch(() => null);
+    const data = resp ? await resp.json().catch(() => ({})) : {};
+    if (resp?.ok && (data as any)?.ok) {
+      return { success: true, messageId: String((data as any).result.message_id) };
+    }
+    return { success: false, messageId: null, error: 'Falha ao baixar imagem' };
+  }
+  const fileName = fileNameFromUrl(photoUrl, 'jpg');
+  const blob = new Blob([media.bytes], { type: media.contentType });
+  const sent = await telegramUpload(botToken, 'sendPhoto', chatId, 'photo', blob, fileName, caption);
+  // Telegram pode rejeitar alguns formatos (ex.: webp) como foto → cai pra documento
+  if (!sent.success) {
+    console.log('sendPhoto falhou, tentando como documento:', fileName);
+    return await telegramUpload(botToken, 'sendDocument', chatId, 'document', blob, fileName, caption);
+  }
+  return sent;
 }
 
 export async function sendTelegramDocument(botToken: string, chatId: string, docUrl: string, caption?: string) {
-  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, document: docUrl, caption: caption || undefined }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !(data as any)?.ok) {
-    const err = (data as any)?.description || `HTTP ${resp.status}`;
-    console.error('Telegram sendDocument error:', resp.status, JSON.stringify(data));
-    return { success: false, messageId: null, error: err };
+  const media = await fetchMediaBytes(docUrl);
+  if (!media) {
+    const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, document: docUrl, caption: caption || undefined }),
+    }).catch(() => null);
+    const data = resp ? await resp.json().catch(() => ({})) : {};
+    if (resp?.ok && (data as any)?.ok) {
+      return { success: true, messageId: String((data as any).result.message_id) };
+    }
+    return { success: false, messageId: null, error: 'Falha ao baixar documento' };
   }
-  const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
-  return { success: true, messageId };
+  const fileName = fileNameFromUrl(docUrl, 'pdf');
+  const blob = new Blob([media.bytes], { type: media.contentType });
+  return await telegramUpload(botToken, 'sendDocument', chatId, 'document', blob, fileName, caption);
 }
 
 // Envia a resposta completa da IA pelo Telegram: texto + mídias (foto/documento).
@@ -513,6 +583,7 @@ export async function sendTelegramReply(botToken: string, chatId: string, conten
 
   return { success: true, messageId };
 }
+
 
 
 // ---------------------------------------------------------------------------
