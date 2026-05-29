@@ -25,5 +25,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.dispatch-message]
+[functions.dispatch-message]
+verify_jwt = false
+
+[functions.telegram-connect]
 verify_jwt = false
 

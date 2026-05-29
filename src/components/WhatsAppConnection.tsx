@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import MetaApiDialog from "./MetaApiDialog";
 import EmbedCodeDialog from "./EmbedCodeDialog";
+import TelegramApiDialog from "./TelegramApiDialog";
 
 interface WhatsAppConnectionProps {
   agentId: string;
@@ -41,6 +42,7 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [metaApiDialogOpen, setMetaApiDialogOpen] = useState(false);
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
+  const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
 
   // Sync agent to n8n when WhatsApp is connected
   const syncAgentToN8n = async () => {
@@ -493,7 +495,7 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
       {/* Box horizontal com API META e Incorporação */}
       <Card className="mt-4 bg-card/50 backdrop-blur-sm border-border/50">
         <CardContent className="p-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/50">
             {/* API Oficial META */}
             <button 
               onClick={() => setMetaApiDialogOpen(true)}
@@ -511,7 +513,23 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
               <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
             </button>
 
-            {/* Incorporar no Site */}
+            {/* Telegram Bot IA */}
+            <button 
+              onClick={() => setTelegramDialogOpen(true)}
+              className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#229ED9]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21.94 4.6L18.6 20.34c-.25 1.11-.91 1.38-1.84.86l-5.1-3.76-2.46 2.37c-.27.27-.5.5-1.02.5l.36-5.18 9.43-8.52c.41-.36-.09-.57-.63-.2L5.04 13.06l-5.02-1.57c-1.09-.34-1.11-1.09.23-1.61L20.53 3.04c.91-.34 1.7.2 1.41 1.56z"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm group-hover:text-primary transition-colors">Telegram Bot IA</p>
+                <p className="text-xs text-muted-foreground">Canal alternativo, simples e estável</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+            </button>
+
             <button 
               onClick={() => setEmbedDialogOpen(true)}
               className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left group"
@@ -539,6 +557,12 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
       <EmbedCodeDialog 
         open={embedDialogOpen} 
         onOpenChange={setEmbedDialogOpen}
+        agentId={agentId}
+        agentName={agentName}
+      />
+      <TelegramApiDialog
+        open={telegramDialogOpen}
+        onOpenChange={setTelegramDialogOpen}
         agentId={agentId}
         agentName={agentName}
       />
