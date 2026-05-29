@@ -550,6 +550,12 @@ function fileNameFromUrl(url: string, fallbackExt: string): string {
   return last && last.includes('.') ? last : `arquivo.${fallbackExt}`;
 }
 
+function blobFromBytes(bytes: Uint8Array, contentType: string): Blob {
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(arrayBuffer).set(bytes);
+  return new Blob([arrayBuffer], { type: contentType });
+}
+
 // POST multipart para o Telegram com retry em erros de conexão.
 async function telegramUpload(
   botToken: string, method: 'sendPhoto' | 'sendDocument',
@@ -596,7 +602,7 @@ export async function sendTelegramPhoto(botToken: string, chatId: string, photoU
     return { success: false, messageId: null, error: 'Falha ao baixar imagem' };
   }
   const fileName = fileNameFromUrl(photoUrl, 'jpg');
-  const blob = new Blob([media.bytes], { type: media.contentType });
+  const blob = blobFromBytes(media.bytes, media.contentType);
   const sent = await telegramUpload(botToken, 'sendPhoto', chatId, 'photo', blob, fileName, caption);
   // Telegram pode rejeitar alguns formatos (ex.: webp) como foto → cai pra documento
   if (!sent.success) {
@@ -620,7 +626,7 @@ export async function sendTelegramDocument(botToken: string, chatId: string, doc
     return { success: false, messageId: null, error: 'Falha ao baixar documento' };
   }
   const fileName = fileNameFromUrl(docUrl, 'pdf');
-  const blob = new Blob([media.bytes], { type: media.contentType });
+  const blob = blobFromBytes(media.bytes, media.contentType);
   return await telegramUpload(botToken, 'sendDocument', chatId, 'document', blob, fileName, caption);
 }
 
