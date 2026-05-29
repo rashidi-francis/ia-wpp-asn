@@ -340,8 +340,9 @@ export async function sendViaProvider(
       .from('telegram_instances').select('*').eq('agent_id', conversation.agent_id).maybeSingle();
     if (!inst?.bot_token) return { success: false, messageId: null, error: 'Telegram bot não configurado' };
     const chatId = conversation.remote_jid.replace(/^tg:/, '');
-    return await sendTelegramMessage(inst.bot_token, chatId, content);
+    return await sendTelegramReply(inst.bot_token, chatId, content);
   }
+
 
   if (provider === 'meta_cloud') {
     const { data: inst } = await supabase
