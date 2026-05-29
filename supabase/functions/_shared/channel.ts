@@ -447,6 +447,61 @@ export async function getTelegramFileUrl(botToken: string, fileId: string): Prom
   }
 }
 
+// ---------------------------------------------------------------------------
+// Transcrição de áudio via Groq Whisper (usado pelo Telegram).
+// Baixa os bytes do áudio e transcreve direto no backend, evitando depender
+// do nó "Download Audio" do n8n (que é específico da Evolution/WhatsApp).
+// Retorna o texto transcrito ou null em caso de falha.
+// ---------------------------------------------------------------------------
+export async function transcribeAudioFromUrl(audioUrl: string): Promise<string | null> {
+  const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+  if (!GROQ_API_KEY) {
+    console.error('GROQ_API_KEY is not configured; cannot transcribe Telegram audio');
+    return null;
+  }
+
+  const media = await fetchMediaBytes(audioUrl);
+  if (!media) {
+    console.error('transcribeAudioFromUrl: could not download audio bytes', audioUrl);
+    return null;
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const form = new FormData();
+      const ext = (media.contentType.includes('mp3') && 'mp3')
+        || (media.contentType.includes('mp4') && 'm4a')
+        || (media.contentType.includes('wav') && 'wav')
+        || 'ogg';
+      form.append('file', blobFromBytes(media.bytes, media.contentType || 'audio/ogg'), `audio.${ext}`);
+      form.append('model', 'whisper-large-v3');
+      form.append('language', 'pt');
+      form.append('response_format', 'json');
+
+      const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+        body: form,
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        console.error('Groq transcription error:', resp.status, JSON.stringify(data).substring(0, 200));
+      } else {
+        const text = (data as any)?.text;
+        if (typeof text === 'string' && text.trim()) return text.trim();
+        console.error('Groq transcription: empty text response');
+        return null;
+      }
+    } catch (e) {
+      console.error(`transcribeAudioFromUrl attempt ${attempt + 1} failed:`, (e as Error).message);
+    }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  return null;
+}
+
+
+
 
 // ---------------------------------------------------------------------------
 // Mídia: extrai marcadores [[ENVIAR_MIDIA:URL]] do texto da IA
