@@ -103,11 +103,12 @@ serve(async (req) => {
         message: { conversation: content },
       },
     };
-
     const replyText = await forwardToN8n(n8nBody);
     if (replyText) {
-      const sent = await sendTelegramMessage(inst.bot_token, String(chat.id), replyText);
+      const sent = await sendTelegramReply(inst.bot_token, String(chat.id), replyText);
       await saveOutgoingMessage(supabase, saved.conversationId, replyText, sent.messageId, 'ai');
+    }
+
     }
 
     return ok();
