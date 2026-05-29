@@ -8,7 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corsHeaders, buildAgentN8nExtras, saveIncomingMessage, forwardToN8n,
-  sendTelegramReply, saveOutgoingMessage, appendRelevantMediaMarkerIfMissing,
+  sendTelegramReply, saveOutgoingMessage,
   getTelegramFileUrl, transcribeAudioFromUrl,
 } from "../_shared/channel.ts";
 
