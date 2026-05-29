@@ -66,7 +66,10 @@ serve(async (req) => {
       agentId, provider: 'telegram', remoteJid,
       contactName, contactPhone: null, content,
       messageId: message.message_id ? String(message.message_id) : null,
+      messageType,
+    });
     if (!saved) return ok();
+
     if (!saved.agentEnabled) { console.log('Agent disabled, not forwarding'); return ok(); }
 
     const isAudio = messageType === 'audio';
