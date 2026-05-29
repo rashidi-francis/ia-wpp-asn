@@ -448,17 +448,70 @@ export async function getTelegramFileUrl(botToken: string, fileId: string): Prom
 }
 
 // ---------------------------------------------------------------------------
-// Transcrição de áudio via Groq Whisper (usado pelo Telegram).
-// Baixa os bytes do áudio e transcreve direto no backend, evitando depender
-// do nó "Download Audio" do n8n (que é específico da Evolution/WhatsApp).
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+function audioFormatFromContentType(contentType: string): string {
+  if (contentType.includes('mpeg') || contentType.includes('mp3')) return 'mp3';
+  if (contentType.includes('mp4') || contentType.includes('m4a')) return 'm4a';
+  if (contentType.includes('wav')) return 'wav';
+  if (contentType.includes('webm')) return 'webm';
+  return 'ogg';
+}
+
+async function transcribeAudioWithLovableAI(media: { bytes: Uint8Array; contentType: string }): Promise<string | null> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    console.error('LOVABLE_API_KEY is not configured; cannot use AI Gateway audio fallback');
+    return null;
+  }
+
+  try {
+    const format = audioFormatFromContentType(media.contentType);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Transcreva este áudio em português brasileiro. Retorne somente o texto transcrito, sem comentários.' },
+            { type: 'input_audio', input_audio: { data: bytesToBase64(media.bytes), format } },
+          ],
+        }],
+      }),
+    });
+
+    const raw = await response.text();
+    if (!response.ok) {
+      console.error('AI Gateway audio transcription error:', response.status, raw.substring(0, 200));
+      return null;
+    }
+    const data = JSON.parse(raw);
+    const text = data?.choices?.[0]?.message?.content;
+    return typeof text === 'string' && text.trim() ? text.trim() : null;
+  } catch (e) {
+    console.error('transcribeAudioWithLovableAI error:', (e as Error).message);
+    return null;
+  }
+}
+
+// Transcrição de áudio via Groq Whisper, com fallback pelo Lovable AI Gateway.
 // Retorna o texto transcrito ou null em caso de falha.
 // ---------------------------------------------------------------------------
 export async function transcribeAudioFromUrl(audioUrl: string): Promise<string | null> {
   const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-  if (!GROQ_API_KEY) {
-    console.error('GROQ_API_KEY is not configured; cannot transcribe Telegram audio');
-    return null;
-  }
 
   const media = await fetchMediaBytes(audioUrl);
   if (!media) {
@@ -466,38 +519,41 @@ export async function transcribeAudioFromUrl(audioUrl: string): Promise<string |
     return null;
   }
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const form = new FormData();
-      const ext = (media.contentType.includes('mp3') && 'mp3')
-        || (media.contentType.includes('mp4') && 'm4a')
-        || (media.contentType.includes('wav') && 'wav')
-        || 'ogg';
-      form.append('file', blobFromBytes(media.bytes, media.contentType || 'audio/ogg'), `audio.${ext}`);
-      form.append('model', 'whisper-large-v3');
-      form.append('language', 'pt');
-      form.append('response_format', 'json');
+  if (GROQ_API_KEY) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const form = new FormData();
+        const ext = audioFormatFromContentType(media.contentType);
+        form.append('file', blobFromBytes(media.bytes, media.contentType || 'audio/ogg'), `audio.${ext}`);
+        form.append('model', 'whisper-large-v3');
+        form.append('language', 'pt');
+        form.append('response_format', 'json');
 
-      const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
-        body: form,
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        console.error('Groq transcription error:', resp.status, JSON.stringify(data).substring(0, 200));
-      } else {
-        const text = (data as any)?.text;
-        if (typeof text === 'string' && text.trim()) return text.trim();
-        console.error('Groq transcription: empty text response');
-        return null;
+        const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+          body: form,
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          console.error('Groq transcription error:', resp.status, JSON.stringify(data).substring(0, 200));
+          if (resp.status === 401 || resp.status === 403) break;
+        } else {
+          const text = (data as any)?.text;
+          if (typeof text === 'string' && text.trim()) return text.trim();
+          console.error('Groq transcription: empty text response');
+          break;
+        }
+      } catch (e) {
+        console.error(`transcribeAudioFromUrl attempt ${attempt + 1} failed:`, (e as Error).message);
       }
-    } catch (e) {
-      console.error(`transcribeAudioFromUrl attempt ${attempt + 1} failed:`, (e as Error).message);
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
     }
-    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  } else {
+    console.error('GROQ_API_KEY is not configured; using AI Gateway audio fallback');
   }
-  return null;
+
+  return await transcribeAudioWithLovableAI(media);
 }
 
 
