@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corsHeaders, buildAgentN8nExtras, saveIncomingMessage, forwardToN8n,
   sendTelegramReply, saveOutgoingMessage,
-  getTelegramFileUrl, transcribeAudioFromUrl,
+  getTelegramFileUrl, transcribeAudioFromUrl, appendCatalogMediaMarkerIfClearlyPromised,
 } from "../_shared/channel.ts";
 
 
@@ -132,11 +132,18 @@ serve(async (req) => {
 
 
 
-    // IMPORTANT: enviamos mídia SOMENTE quando o n8n/IA inclui o marcador
-    // [[ENVIAR_MIDIA:url]] na resposta. Não usamos mais heurística de palavra-chave
-    // para "adivinhar" a foto, pois isso enviava imagens fora de contexto.
-    const replyText = await forwardToN8n(n8nBody);
-    if (replyText) {
+    // IMPORTANT: mídia deve vir por marcador [[ENVIAR_MIDIA:url]]. Se a IA
+    // prometeu explicitamente imagem/PDF e esqueceu o marcador, fazemos um
+    // resgate estrito: só anexa quando o catálogo do agente aponta para UMA
+    // mídia claramente relacionada. Sem correspondência clara, não envia nada.
+    const n8nReplyText = await forwardToN8n(n8nBody);
+    if (n8nReplyText) {
+      const replyText = appendCatalogMediaMarkerIfClearlyPromised(
+        n8nReplyText,
+        messageForN8n,
+        extras.photosJson,
+        extras.pdfsJson,
+      );
       const sent = await sendTelegramReply(inst.bot_token, String(chat.id), replyText);
       await saveOutgoingMessage(supabase, saved.conversationId, replyText, sent.messageId, 'ai');
     }
