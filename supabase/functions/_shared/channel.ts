@@ -659,6 +659,89 @@ export function appendRelevantMediaMarkerIfMissing(
   return `${replyText.trim()}\n\n[[ENVIAR_MIDIA:${best.url}]]`;
 }
 
+const EXPLICIT_MEDIA_PROMISE_RE = /\b(veja\s+(?:a\s+)?(?:imagem|foto|print)\s+abaixo|(?:imagem|foto|print)\s+abaixo|segue\s+(?:a\s+)?(?:imagem|foto|print|arquivo|pdf)|(?:enviei|anexei)\s+(?:a\s+)?(?:imagem|foto|print|arquivo|pdf))\b/i;
+
+const STRICT_MEDIA_STOPWORDS = new Set([
+  ...MEDIA_STOPWORDS,
+  'foto', 'fotos', 'imagem', 'imagens', 'print', 'prints', 'arquivo', 'cliente', 'clientes',
+  'ensinar', 'mostre', 'mostrar', 'devera', 'deverá', 'quando', 'caso', 'tendo', 'dificuldade',
+  'pergunte', 'servico', 'serviço', 'site', 'dentro', 'sobre', 'forma', 'geral', 'plataforma',
+]);
+
+function significantTokens(value: string): string[] {
+  return Array.from(new Set(
+    normalizeSearchText(value)
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((token) => token.length >= 4 && !STRICT_MEDIA_STOPWORDS.has(token)),
+  ));
+}
+
+function scoreMediaCandidate(context: string, item: AgentMedia): number {
+  const haystack = normalizeSearchText(`${item.description || ''} ${item.fileName || ''} ${item.url || ''}`);
+  const haystackTokens = significantTokens(haystack);
+  const haystackTokenText = haystackTokens.join(' ');
+  const contextTokens = significantTokens(context);
+  let score = 0;
+
+  for (const token of contextTokens) {
+    if (haystackTokens.includes(token)) score += token.length >= 7 ? 3 : 2;
+  }
+
+  for (let size = 2; size <= 3; size++) {
+    for (let i = 0; i <= contextTokens.length - size; i++) {
+      const phrase = contextTokens.slice(i, i + size).join(' ');
+      if (haystackTokenText.includes(phrase)) score += size === 3 ? 10 : 6;
+    }
+  }
+
+  return score;
+}
+
+// Resgate seguro: se a IA prometeu explicitamente uma imagem/PDF mas esqueceu o
+// marcador, anexamos SOMENTE quando o catálogo do agente aponta para uma única
+// mídia claramente relacionada ao contexto. Se houver ambiguidade, não envia.
+export function appendCatalogMediaMarkerIfClearlyPromised(
+  replyText: string,
+  contextText: string,
+  photosJson?: string,
+  pdfsJson?: string,
+): string {
+  if (!replyText || hasMediaMarker(replyText)) return replyText;
+
+  const catalog = [...parseAgentMediaList(photosJson), ...parseAgentMediaList(pdfsJson)];
+  if (catalog.length === 0) return replyText;
+
+  const rawUrlMatch = catalog.find((item) => item.url && replyText.includes(item.url));
+  if (rawUrlMatch) return `${replyText.trim()}\n\n[[ENVIAR_MIDIA:${rawUrlMatch.url}]]`;
+
+  if (!EXPLICIT_MEDIA_PROMISE_RE.test(replyText)) return replyText;
+
+  const context = `${contextText}\n${replyText}`;
+  const ranked = catalog
+    .map((item) => ({ item, score: scoreMediaCandidate(context, item) }))
+    .sort((a, b) => b.score - a.score);
+  const best = ranked[0];
+  const second = ranked[1];
+  if (!best || best.score < 10) return replyText;
+  if (second && best.score - second.score < 6) {
+    console.log('Telegram media rescue skipped: ambiguous catalog match', {
+      best: best.item.fileName,
+      bestScore: best.score,
+      second: second.item.fileName,
+      secondScore: second.score,
+    });
+    return replyText;
+  }
+
+  console.log('Telegram media rescue attached catalog media', {
+    fileName: best.item.fileName,
+    score: best.score,
+    url: best.item.url,
+  });
+  return `${replyText.trim()}\n\n[[ENVIAR_MIDIA:${best.item.url}]]`;
+}
+
 function isImageUrl(url: string): boolean {
   const clean = url.split(/[?#]/)[0].toLowerCase();
   return /\.(jpg|jpeg|png|gif|webp|bmp)$/.test(clean)
