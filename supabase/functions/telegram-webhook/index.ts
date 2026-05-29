@@ -80,15 +80,24 @@ serve(async (req) => {
       return ok();
     }
 
-    // Para áudio: resolve a URL pública de download para o n8n transcrever (Groq).
-    let audioUrl: string | null = null;
+    // Para áudio: transcrevemos AQUI no backend (Groq Whisper) e enviamos o
+    // texto transcrito ao n8n como mensagem normal. Assim não dependemos do nó
+    // "Download Audio" do n8n, que é específico do fluxo Evolution/WhatsApp.
+    let messageForN8n = content;
     if (isAudio) {
       const fileId = message.voice?.file_id || message.audio?.file_id || null;
-      if (fileId) audioUrl = await getTelegramFileUrl(inst.bot_token, fileId);
+      const audioUrl = fileId ? await getTelegramFileUrl(inst.bot_token, fileId) : null;
       if (!audioUrl) {
         console.error('Telegram audio: could not resolve file URL; skipping');
         return ok();
       }
+      const transcript = await transcribeAudioFromUrl(audioUrl);
+      if (!transcript) {
+        console.error('Telegram audio: transcription failed; skipping n8n flow');
+        return ok();
+      }
+      console.log('Telegram audio transcribed:', transcript.substring(0, 120));
+      messageForN8n = transcript;
     }
 
     const extras = await buildAgentN8nExtras(supabase, agentId);
@@ -101,10 +110,10 @@ serve(async (req) => {
       agent_id: agentId,
       remoteJid,
       chat_id: String(chat.id),
-      message: content,
-      mensagem: content,
-      mensage: content,
-      messageType: isAudio ? 'audioMessage' : 'conversation',
+      message: messageForN8n,
+      mensagem: messageForN8n,
+      mensage: messageForN8n,
+      messageType: 'conversation',
       prompt: extras.prompt,
       agent_photos: extras.photosJson,
       agent_pdfs: extras.pdfsJson,
@@ -116,18 +125,11 @@ serve(async (req) => {
       data: {
         key: { remoteJid },
         remoteJid,
-        messageType: isAudio ? 'audioMessage' : 'conversation',
-        message: isAudio
-          ? { conversation: content, audioMessage: { url: audioUrl, mediaUrl: audioUrl, mimetype: 'audio/ogg' } }
-          : { conversation: content },
+        messageType: 'conversation',
+        message: { conversation: messageForN8n },
       },
     };
 
-    // Áudio: expõe o objeto/URL no topo (mesmo formato do fluxo WhatsApp) p/ o n8n transcrever.
-    if (isAudio && audioUrl) {
-      n8nBody.audioMessage = { url: audioUrl, mediaUrl: audioUrl, mimetype: 'audio/ogg' };
-      n8nBody.audioUrl = audioUrl;
-    }
 
 
     const n8nReplyText = await forwardToN8n(n8nBody);
