@@ -133,8 +133,7 @@ serve(async (req) => {
 
 
     const n8nReplyText = await forwardToN8n(n8nBody);
-    const replyText = n8nReplyText
-      ? appendRelevantMediaMarkerIfMissing(n8nReplyText, content, extras.photosJson, extras.pdfsJson)
+      ? appendRelevantMediaMarkerIfMissing(n8nReplyText, messageForN8n, extras.photosJson, extras.pdfsJson)
       : null;
     if (replyText) {
       const sent = await sendTelegramReply(inst.bot_token, String(chat.id), replyText);
