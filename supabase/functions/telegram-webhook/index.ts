@@ -8,8 +8,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corsHeaders, buildAgentN8nExtras, saveIncomingMessage, forwardToN8n,
-  sendTelegramMessage, saveOutgoingMessage,
+  sendTelegramReply, saveOutgoingMessage,
 } from "../_shared/channel.ts";
+
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -102,12 +103,12 @@ serve(async (req) => {
         message: { conversation: content },
       },
     };
-
     const replyText = await forwardToN8n(n8nBody);
     if (replyText) {
-      const sent = await sendTelegramMessage(inst.bot_token, String(chat.id), replyText);
+      const sent = await sendTelegramReply(inst.bot_token, String(chat.id), replyText);
       await saveOutgoingMessage(supabase, saved.conversationId, replyText, sent.messageId, 'ai');
     }
+
 
     return ok();
   } catch (error: unknown) {

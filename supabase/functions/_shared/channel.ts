@@ -340,8 +340,9 @@ export async function sendViaProvider(
       .from('telegram_instances').select('*').eq('agent_id', conversation.agent_id).maybeSingle();
     if (!inst?.bot_token) return { success: false, messageId: null, error: 'Telegram bot não configurado' };
     const chatId = conversation.remote_jid.replace(/^tg:/, '');
-    return await sendTelegramMessage(inst.bot_token, chatId, content);
+    return await sendTelegramReply(inst.bot_token, chatId, content);
   }
+
 
   if (provider === 'meta_cloud') {
     const { data: inst } = await supabase
@@ -420,6 +421,99 @@ export async function sendTelegramMessage(botToken: string, chatId: string, text
   const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
   return { success: true, messageId };
 }
+
+// ---------------------------------------------------------------------------
+// Mídia: extrai marcadores [[ENVIAR_MIDIA:URL]] do texto da IA
+// ---------------------------------------------------------------------------
+const MEDIA_MARKER_RE = /\[+\s*ENVIAR_MIDIA\s*:\s*([^\]]+?)\s*\]+/gi;
+
+export function extractMediaMarkers(text: string): { cleanText: string; mediaUrls: string[] } {
+  const mediaUrls: string[] = [];
+  if (!text) return { cleanText: '', mediaUrls };
+  let m: RegExpExecArray | null;
+  MEDIA_MARKER_RE.lastIndex = 0;
+  while ((m = MEDIA_MARKER_RE.exec(text)) !== null) {
+    const url = (m[1] || '').trim();
+    if (url) mediaUrls.push(url);
+  }
+  const cleanText = text
+    .replace(MEDIA_MARKER_RE, '')
+    .replace(/\*\*\s*\*\*/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return { cleanText, mediaUrls };
+}
+
+function isImageUrl(url: string): boolean {
+  const clean = url.split(/[?#]/)[0].toLowerCase();
+  return /\.(jpg|jpeg|png|gif|webp|bmp)$/.test(clean)
+    || url.includes('lh3.googleusercontent.com');
+}
+
+export async function sendTelegramPhoto(botToken: string, chatId: string, photoUrl: string, caption?: string) {
+  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption || undefined }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !(data as any)?.ok) {
+    const err = (data as any)?.description || `HTTP ${resp.status}`;
+    console.error('Telegram sendPhoto error:', resp.status, JSON.stringify(data));
+    return { success: false, messageId: null, error: err };
+  }
+  const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
+  return { success: true, messageId };
+}
+
+export async function sendTelegramDocument(botToken: string, chatId: string, docUrl: string, caption?: string) {
+  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, document: docUrl, caption: caption || undefined }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !(data as any)?.ok) {
+    const err = (data as any)?.description || `HTTP ${resp.status}`;
+    console.error('Telegram sendDocument error:', resp.status, JSON.stringify(data));
+    return { success: false, messageId: null, error: err };
+  }
+  const messageId = (data as any)?.result?.message_id ? String((data as any).result.message_id) : null;
+  return { success: true, messageId };
+}
+
+// Envia a resposta completa da IA pelo Telegram: texto + mídias (foto/documento).
+// Lê os marcadores [[ENVIAR_MIDIA:URL]] e dispara o arquivo real ao invés da URL crua.
+export async function sendTelegramReply(botToken: string, chatId: string, content: string) {
+  const { cleanText, mediaUrls } = extractMediaMarkers(content);
+
+  let messageId: string | null = null;
+
+  // 1) Texto primeiro (se houver), para dar contexto antes da mídia
+  if (cleanText) {
+    const sent = await sendTelegramMessage(botToken, chatId, cleanText);
+    if (sent.success) messageId = sent.messageId;
+  }
+
+  // 2) Cada mídia como foto (imagem) ou documento (PDF/outros)
+  for (const rawUrl of mediaUrls) {
+    const isImage = isImageUrl(rawUrl);
+    const url = normalizeMediaUrl(rawUrl, undefined, isImage ? 'image' : 'document');
+    const sent = isImage
+      ? await sendTelegramPhoto(botToken, chatId, url)
+      : await sendTelegramDocument(botToken, chatId, url);
+    if (sent.success && !messageId) messageId = sent.messageId;
+  }
+
+  // Se não havia texto nem mídia, garante envio do conteúdo bruto
+  if (!cleanText && mediaUrls.length === 0) {
+    return await sendTelegramMessage(botToken, chatId, content);
+  }
+
+  return { success: true, messageId };
+}
+
 
 // ---------------------------------------------------------------------------
 // Salva resposta da IA e atualiza a conversa (agenda follow-up #1)
