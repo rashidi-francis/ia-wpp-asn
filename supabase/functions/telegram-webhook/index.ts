@@ -109,7 +109,6 @@ serve(async (req) => {
       await saveOutgoingMessage(supabase, saved.conversationId, replyText, sent.messageId, 'ai');
     }
 
-    }
 
     return ok();
   } catch (error: unknown) {
