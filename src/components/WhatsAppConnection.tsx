@@ -495,7 +495,7 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
       {/* Box horizontal com API META e Incorporação */}
       <Card className="mt-4 bg-card/50 backdrop-blur-sm border-border/50">
         <CardContent className="p-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/50">
             {/* API Oficial META */}
             <button 
               onClick={() => setMetaApiDialogOpen(true)}
