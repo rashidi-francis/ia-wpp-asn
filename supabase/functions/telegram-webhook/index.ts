@@ -129,8 +129,7 @@ serve(async (req) => {
       n8nBody.audioUrl = audioUrl;
     }
 
-      },
-    };
+
     const n8nReplyText = await forwardToN8n(n8nBody);
     const replyText = n8nReplyText
       ? appendRelevantMediaMarkerIfMissing(n8nReplyText, content, extras.photosJson, extras.pdfsJson)
