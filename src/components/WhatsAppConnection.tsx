@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import MetaApiDialog from "./MetaApiDialog";
 import EmbedCodeDialog from "./EmbedCodeDialog";
+import TelegramApiDialog from "./TelegramApiDialog";
 
 interface WhatsAppConnectionProps {
   agentId: string;
@@ -41,6 +42,7 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [metaApiDialogOpen, setMetaApiDialogOpen] = useState(false);
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
+  const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
 
   // Sync agent to n8n when WhatsApp is connected
   const syncAgentToN8n = async () => {
