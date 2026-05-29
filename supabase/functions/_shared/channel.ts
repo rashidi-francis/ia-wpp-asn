@@ -445,6 +445,77 @@ export function extractMediaMarkers(text: string): { cleanText: string; mediaUrl
   return { cleanText, mediaUrls };
 }
 
+export function hasMediaMarker(text: string): boolean {
+  MEDIA_MARKER_RE.lastIndex = 0;
+  return MEDIA_MARKER_RE.test(text || '');
+}
+
+function normalizeSearchText(value: string): string {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+const MEDIA_STOPWORDS = new Set([
+  'para', 'como', 'com', 'uma', 'por', 'favor', 'voce', 'vocs', 'vcs', 'site', 'plataforma',
+  'cliente', 'imagem', 'foto', 'print', 'mostrar', 'enviar', 'envia', 'vou', 'fazer', 'passo',
+  'onde', 'esta', 'esse', 'essa', 'isso', 'aqui', 'agora', 'pelo', 'pela', 'dele', 'dela',
+]);
+
+function parseAgentMediaList(json: string | undefined | null): AgentMedia[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((item) => item?.url) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function appendRelevantMediaMarkerIfMissing(
+  replyText: string,
+  contextText: string,
+  photosJson?: string,
+  pdfsJson?: string,
+): string {
+  if (!replyText || hasMediaMarker(replyText)) return replyText;
+
+  const context = normalizeSearchText(`${contextText}\n${replyText}`);
+  const asksForMedia = /\b(imagem|foto|print|mostr|anex|envia|enviar|vou enviar|veja|abaixo)\b/i.test(context);
+  if (!asksForMedia) return replyText;
+
+  const catalog = [...parseAgentMediaList(photosJson), ...parseAgentMediaList(pdfsJson)];
+  if (catalog.length === 0) return replyText;
+
+  const tokens = Array.from(new Set(
+    context
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((token) => token.length >= 4 && !MEDIA_STOPWORDS.has(token)),
+  ));
+
+  let best: AgentMedia | null = null;
+  let bestScore = 0;
+  for (const item of catalog) {
+    const haystack = normalizeSearchText(`${item.description || ''} ${item.fileName || ''} ${item.url || ''}`);
+    let score = 0;
+    if (context.includes('adicionar saldo') && haystack.includes('adicionar saldo')) score += 25;
+    if (context.includes('saldo') && haystack.includes('saldo')) score += 12;
+    if (context.includes('pedido') && haystack.includes('pedido')) score += 8;
+    for (const token of tokens) {
+      if (haystack.includes(token)) score += token.length >= 6 ? 2 : 1;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+
+  if (!best || bestScore < 4) return replyText;
+  return `${replyText.trim()}\n\n[[ENVIAR_MIDIA:${best.url}]]`;
+}
+
 function isImageUrl(url: string): boolean {
   const clean = url.split(/[?#]/)[0].toLowerCase();
   return /\.(jpg|jpeg|png|gif|webp|bmp)$/.test(clean)
@@ -477,6 +548,12 @@ function fileNameFromUrl(url: string, fallbackExt: string): string {
   const clean = url.split(/[?#]/)[0];
   const last = clean.substring(clean.lastIndexOf('/') + 1);
   return last && last.includes('.') ? last : `arquivo.${fallbackExt}`;
+}
+
+function blobFromBytes(bytes: Uint8Array, contentType: string): Blob {
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(arrayBuffer).set(bytes);
+  return new Blob([arrayBuffer], { type: contentType });
 }
 
 // POST multipart para o Telegram com retry em erros de conexão.
@@ -525,7 +602,7 @@ export async function sendTelegramPhoto(botToken: string, chatId: string, photoU
     return { success: false, messageId: null, error: 'Falha ao baixar imagem' };
   }
   const fileName = fileNameFromUrl(photoUrl, 'jpg');
-  const blob = new Blob([media.bytes], { type: media.contentType });
+  const blob = blobFromBytes(media.bytes, media.contentType);
   const sent = await telegramUpload(botToken, 'sendPhoto', chatId, 'photo', blob, fileName, caption);
   // Telegram pode rejeitar alguns formatos (ex.: webp) como foto → cai pra documento
   if (!sent.success) {
@@ -549,7 +626,7 @@ export async function sendTelegramDocument(botToken: string, chatId: string, doc
     return { success: false, messageId: null, error: 'Falha ao baixar documento' };
   }
   const fileName = fileNameFromUrl(docUrl, 'pdf');
-  const blob = new Blob([media.bytes], { type: media.contentType });
+  const blob = blobFromBytes(media.bytes, media.contentType);
   return await telegramUpload(botToken, 'sendDocument', chatId, 'document', blob, fileName, caption);
 }
 
