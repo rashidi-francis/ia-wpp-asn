@@ -560,6 +560,12 @@ const WhatsAppConnection = ({ agentId, agentName }: WhatsAppConnectionProps) => 
         agentId={agentId}
         agentName={agentName}
       />
+      <TelegramApiDialog
+        open={telegramDialogOpen}
+        onOpenChange={setTelegramDialogOpen}
+        agentId={agentId}
+        agentName={agentName}
+      />
     </>
   );
 };
