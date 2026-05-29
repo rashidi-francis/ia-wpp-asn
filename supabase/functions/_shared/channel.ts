@@ -610,6 +610,12 @@ function parseAgentMediaList(json: string | undefined | null): AgentMedia[] {
   }
 }
 
+// DEPRECATED: NÃO use. Esta heurística por palavra-chave "adivinhava" qual mídia
+// anexar e acabava enviando imagens fora de contexto (ex.: print de "adicionar saldo"
+// quando o cliente pediu o histórico de pedidos). A decisão de qual mídia enviar
+// pertence ao n8n/IA, que usa a descrição específica de cada foto/PDF definida pelo
+// dono do agente, e sinaliza via marcador [[ENVIAR_MIDIA:url]]. Mantida apenas para
+// não quebrar imports legados.
 export function appendRelevantMediaMarkerIfMissing(
   replyText: string,
   contextText: string,
