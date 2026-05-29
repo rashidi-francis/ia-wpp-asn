@@ -423,6 +423,32 @@ export async function sendTelegramMessage(botToken: string, chatId: string, text
 }
 
 // ---------------------------------------------------------------------------
+// Telegram: resolve a URL pública de download de um file_id (áudio/voz/etc).
+// A URL retornada (https://api.telegram.org/file/bot<token>/<path>) é
+// diretamente baixável — o n8n consegue buscá-la no nó "Download Audio".
+// ---------------------------------------------------------------------------
+export async function getTelegramFileUrl(botToken: string, fileId: string): Promise<string | null> {
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${botToken}/getFile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_id: fileId }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    const filePath = (data as any)?.result?.file_path;
+    if (!resp.ok || !(data as any)?.ok || !filePath) {
+      console.error('Telegram getFile error:', resp.status, JSON.stringify(data).substring(0, 200));
+      return null;
+    }
+    return `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+  } catch (e) {
+    console.error('getTelegramFileUrl error:', e);
+    return null;
+  }
+}
+
+
+// ---------------------------------------------------------------------------
 // Mídia: extrai marcadores [[ENVIAR_MIDIA:URL]] do texto da IA
 // ---------------------------------------------------------------------------
 const MEDIA_MARKER_RE = /\[+\s*ENVIAR_MIDIA\s*:\s*([^\]]+?)\s*\]+/gi;
