@@ -87,7 +87,7 @@ const Agent = () => {
   const [dbBaseline, setDbBaseline] = useState<Record<string, string> | null>(null);
 
   const { clearDraft } = useDraftAutosave({
-    key: `agent-draft-${id}`,
+    key: draftKey,
     data: draftData,
     baseline: dbBaseline,
     enabled: !isViewOnly,
@@ -227,7 +227,7 @@ const Agent = () => {
       // atualizações feitas em outro navegador/dispositivo.
       let draftToRestore: Record<string, string> | null = null;
       try {
-        const savedDraft = localStorage.getItem(`agent-draft-${id}`);
+        const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft) as Record<string, string>;
           const norm = (v: string | undefined) => (v ?? "").trim();
@@ -241,11 +241,11 @@ const Agent = () => {
             draftToRestore = parsed;
           } else {
             // Rascunho igual ao banco (ou vazio): descarta para não mascarar dados novos
-            localStorage.removeItem(`agent-draft-${id}`);
+            localStorage.removeItem(draftKey);
           }
         }
       } catch {
-        localStorage.removeItem(`agent-draft-${id}`);
+        localStorage.removeItem(draftKey);
       }
 
       const valuesToApply = draftToRestore ?? dbValues;
