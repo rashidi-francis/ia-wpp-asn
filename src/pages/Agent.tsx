@@ -79,25 +79,15 @@ const Agent = () => {
     respostaSecundariaErro,
   }), [nome, quemEh, oQueFaz, objetivo, comoDeveResponder, instrucoesAgente, topicosEvitar, palavrasEvitar, linksPermitidos, regrasPersonalizadas, respostaPadraoErro, respostaSecundariaErro]);
 
-  const draftSetters = useMemo(() => ({
-    nome: setNome,
-    quemEh: setQuemEh,
-    oQueFaz: setOQueFaz,
-    objetivo: setObjetivo,
-    comoDeveResponder: setComoDeveResponder,
-    instrucoesAgente: setInstrucoesAgente,
-    topicosEvitar: setTopicosEvitar,
-    palavrasEvitar: setPalavrasEvitar,
-    linksPermitidos: setLinksPermitidos,
-    regrasPersonalizadas: setRegrasPersonalizadas,
-    respostaPadraoErro: setRespostaPadraoErro,
-    respostaSecundariaErro: setRespostaSecundariaErro,
-  }), []);
+  // Database baseline (values currently persisted). Used to distinguish a
+  // genuine unsaved edit from a clean DB-loaded copy.
+  const [dbBaseline, setDbBaseline] = useState<Record<string, string> | null>(null);
 
   const { clearDraft } = useDraftAutosave({
     key: `agent-draft-${id}`,
     data: draftData,
-    setters: draftSetters,
+    baseline: dbBaseline,
+    enabled: !isViewOnly,
   });
 
   useEffect(() => {
