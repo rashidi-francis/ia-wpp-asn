@@ -39,6 +39,9 @@ const Agent = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  // Versioned draft key. Bumping the version abandons legacy drafts created by
+  // the old caching bug, so every device loads fresh data from the database.
+  const draftKey = `agent-draft-v2-${id}`;
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
