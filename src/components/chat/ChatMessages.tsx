@@ -128,10 +128,11 @@ export const ChatMessages = ({
 
   const handleSendManualMessage = async (content: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('send-manual-message', {
+      const { data, error } = await supabase.functions.invoke('dispatch-message', {
         body: {
           conversation_id: conversation.id,
           content,
+          sender_type: 'human',
         },
       });
 
