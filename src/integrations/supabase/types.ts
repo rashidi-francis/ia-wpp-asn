@@ -217,6 +217,75 @@ export type Database = {
           },
         ]
       }
+      appointments: {
+        Row: {
+          agent_id: string
+          attendees: string | null
+          calendar_id: string | null
+          channel: string
+          conversation_id: string | null
+          created_at: string
+          customer_contact: string | null
+          customer_name: string | null
+          event_description: string | null
+          event_end: string | null
+          event_start: string
+          event_title: string | null
+          google_event_id: string | null
+          id: string
+          reminder_10min_sent: boolean
+          reminder_1h_sent: boolean
+          reminder_24h_sent: boolean
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          attendees?: string | null
+          calendar_id?: string | null
+          channel?: string
+          conversation_id?: string | null
+          created_at?: string
+          customer_contact?: string | null
+          customer_name?: string | null
+          event_description?: string | null
+          event_end?: string | null
+          event_start: string
+          event_title?: string | null
+          google_event_id?: string | null
+          id?: string
+          reminder_10min_sent?: boolean
+          reminder_1h_sent?: boolean
+          reminder_24h_sent?: boolean
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          attendees?: string | null
+          calendar_id?: string | null
+          channel?: string
+          conversation_id?: string | null
+          created_at?: string
+          customer_contact?: string | null
+          customer_name?: string | null
+          event_description?: string | null
+          event_end?: string | null
+          event_start?: string
+          event_title?: string | null
+          google_event_id?: string | null
+          id?: string
+          reminder_10min_sent?: boolean
+          reminder_1h_sent?: boolean
+          reminder_24h_sent?: boolean
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       device_fingerprints: {
         Row: {
           created_at: string
