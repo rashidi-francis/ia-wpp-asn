@@ -39,6 +39,9 @@ const Agent = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  // Versioned draft key. Bumping the version abandons legacy drafts created by
+  // the old caching bug, so every device loads fresh data from the database.
+  const draftKey = `agent-draft-v2-${id}`;
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,25 +82,15 @@ const Agent = () => {
     respostaSecundariaErro,
   }), [nome, quemEh, oQueFaz, objetivo, comoDeveResponder, instrucoesAgente, topicosEvitar, palavrasEvitar, linksPermitidos, regrasPersonalizadas, respostaPadraoErro, respostaSecundariaErro]);
 
-  const draftSetters = useMemo(() => ({
-    nome: setNome,
-    quemEh: setQuemEh,
-    oQueFaz: setOQueFaz,
-    objetivo: setObjetivo,
-    comoDeveResponder: setComoDeveResponder,
-    instrucoesAgente: setInstrucoesAgente,
-    topicosEvitar: setTopicosEvitar,
-    palavrasEvitar: setPalavrasEvitar,
-    linksPermitidos: setLinksPermitidos,
-    regrasPersonalizadas: setRegrasPersonalizadas,
-    respostaPadraoErro: setRespostaPadraoErro,
-    respostaSecundariaErro: setRespostaSecundariaErro,
-  }), []);
+  // Database baseline (values currently persisted). Used to distinguish a
+  // genuine unsaved edit from a clean DB-loaded copy.
+  const [dbBaseline, setDbBaseline] = useState<Record<string, string> | null>(null);
 
   const { clearDraft } = useDraftAutosave({
-    key: `agent-draft-${id}`,
+    key: draftKey,
     data: draftData,
-    setters: draftSetters,
+    baseline: dbBaseline,
+    enabled: !isViewOnly,
   });
 
   useEffect(() => {
@@ -213,34 +206,75 @@ const Agent = () => {
         setIsViewOnly(true);
       }
 
-      // Se existir rascunho local com conteúdo, NÃO sobrescreva com valores do banco
-      // (isso evita perder texto ao voltar pra aba e o loadAgent rodar novamente)
-      let hasDraftContent = false;
+      // Valores atuais do banco (fonte da verdade, compartilhada entre dispositivos)
+      const dbValues: Record<string, string> = {
+        nome: data.nome || "",
+        quemEh: data.quem_eh || "",
+        oQueFaz: data.o_que_faz || "",
+        objetivo: data.objetivo || "",
+        comoDeveResponder: data.como_deve_responder || "",
+        instrucoesAgente: data.instrucoes_agente || "",
+        topicosEvitar: data.topicos_evitar || "",
+        palavrasEvitar: data.palavras_evitar || "",
+        linksPermitidos: data.links_permitidos || "",
+        regrasPersonalizadas: data.regras_personalizadas || "",
+        respostaPadraoErro: data.resposta_padrao_erro || "",
+        respostaSecundariaErro: data.resposta_secundaria_erro || "",
+      };
+
+      // Só recupera o rascunho local se ele REALMENTE diferir do banco.
+      // Isso evita que uma cópia antiga em cache (localStorage) esconda
+      // atualizações feitas em outro navegador/dispositivo.
+      let draftToRestore: Record<string, string> | null = null;
+      // Remove qualquer rascunho legado (chave antiga) que possa estar escondendo dados novos
+      try { localStorage.removeItem(`agent-draft-${id}`); } catch { /* ignore */ }
       try {
-        const savedDraft = localStorage.getItem(`agent-draft-${id}`);
+        const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft) as Record<string, string>;
-          hasDraftContent = Object.values(parsed).some(
+          const norm = (v: string | undefined) => (v ?? "").trim();
+          const differsFromDb = Object.keys(dbValues).some(
+            (k) => norm(parsed[k]) !== norm(dbValues[k])
+          );
+          const hasContent = Object.values(parsed).some(
             (v) => typeof v === "string" && v.trim() !== ""
           );
+          if (differsFromDb && hasContent) {
+            draftToRestore = parsed;
+          } else {
+            // Rascunho igual ao banco (ou vazio): descarta para não mascarar dados novos
+            localStorage.removeItem(draftKey);
+          }
         }
       } catch {
-        // ignore
+        localStorage.removeItem(draftKey);
       }
 
-      if (!hasDraftContent) {
-        setNome(data.nome || "");
-        setQuemEh(data.quem_eh || "");
-        setOQueFaz(data.o_que_faz || "");
-        setObjetivo(data.objetivo || "");
-        setComoDeveResponder(data.como_deve_responder || "");
-        setInstrucoesAgente(data.instrucoes_agente || "");
-        setTopicosEvitar(data.topicos_evitar || "");
-        setPalavrasEvitar(data.palavras_evitar || "");
-        setLinksPermitidos(data.links_permitidos || "");
-        setRegrasPersonalizadas(data.regras_personalizadas || "");
-        setRespostaPadraoErro(data.resposta_padrao_erro || "");
-        setRespostaSecundariaErro(data.resposta_secundaria_erro || "");
+      const valuesToApply = draftToRestore ?? dbValues;
+
+      setNome(valuesToApply.nome || "");
+      setQuemEh(valuesToApply.quemEh || "");
+      setOQueFaz(valuesToApply.oQueFaz || "");
+      setObjetivo(valuesToApply.objetivo || "");
+      setComoDeveResponder(valuesToApply.comoDeveResponder || "");
+      setInstrucoesAgente(valuesToApply.instrucoesAgente || "");
+      setTopicosEvitar(valuesToApply.topicosEvitar || "");
+      setPalavrasEvitar(valuesToApply.palavrasEvitar || "");
+      setLinksPermitidos(valuesToApply.linksPermitidos || "");
+      setRegrasPersonalizadas(valuesToApply.regrasPersonalizadas || "");
+      setRespostaPadraoErro(valuesToApply.respostaPadraoErro || "");
+      setRespostaSecundariaErro(valuesToApply.respostaSecundariaErro || "");
+
+      // Define a baseline DEPOIS de aplicar os valores, para o autosave saber
+      // o que está realmente salvo no banco.
+      setDbBaseline(dbValues);
+
+      if (draftToRestore) {
+        toast({
+          title: "Rascunho recuperado",
+          description: "Recuperamos alterações que ainda não tinham sido salvas neste dispositivo.",
+          duration: 5000,
+        });
       }
     } catch (error: any) {
       toast({
@@ -317,6 +351,23 @@ const Agent = () => {
         'template_kms9cib',
         templateParams
       );
+
+      // Atualiza a baseline para o que acabou de ser salvo e limpa o rascunho,
+      // evitando que o autosave recrie um rascunho "stale".
+      setDbBaseline({
+        nome,
+        quemEh,
+        oQueFaz,
+        objetivo,
+        comoDeveResponder,
+        instrucoesAgente,
+        topicosEvitar,
+        palavrasEvitar,
+        linksPermitidos,
+        regrasPersonalizadas,
+        respostaPadraoErro,
+        respostaSecundariaErro,
+      });
 
       // Clear draft after successful save
       clearDraft();
