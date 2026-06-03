@@ -226,6 +226,8 @@ const Agent = () => {
       // Isso evita que uma cópia antiga em cache (localStorage) esconda
       // atualizações feitas em outro navegador/dispositivo.
       let draftToRestore: Record<string, string> | null = null;
+      // Remove qualquer rascunho legado (chave antiga) que possa estar escondendo dados novos
+      try { localStorage.removeItem(`agent-draft-${id}`); } catch { /* ignore */ }
       try {
         const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
