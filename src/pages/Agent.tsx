@@ -347,6 +347,23 @@ const Agent = () => {
         templateParams
       );
 
+      // Atualiza a baseline para o que acabou de ser salvo e limpa o rascunho,
+      // evitando que o autosave recrie um rascunho "stale".
+      setDbBaseline({
+        nome,
+        quemEh,
+        oQueFaz,
+        objetivo,
+        comoDeveResponder,
+        instrucoesAgente,
+        topicosEvitar,
+        palavrasEvitar,
+        linksPermitidos,
+        regrasPersonalizadas,
+        respostaPadraoErro,
+        respostaSecundariaErro,
+      });
+
       // Clear draft after successful save
       clearDraft();
 
