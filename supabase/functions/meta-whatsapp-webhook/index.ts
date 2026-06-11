@@ -111,6 +111,13 @@ serve(async (req) => {
             instancia: `meta_${inst.agent_id}`,
             agent_id: inst.agent_id,
             remoteJid,
+
+            // Campos p/ agendamento (tabela appointments)
+            conversation_id: saved.conversationId,
+            channel: 'whatsapp',
+            customer_name: contactName || '',
+            customer_contact: from,
+
             phone_number: from,
             message: content,
             mensagem: content,
