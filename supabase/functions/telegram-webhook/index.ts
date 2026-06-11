@@ -108,6 +108,13 @@ serve(async (req) => {
       instance_name: `telegram_${agentId}`,
       instancia: `telegram_${agentId}`,
       agent_id: agentId,
+
+      // Campos p/ agendamento (tabela appointments)
+      conversation_id: saved?.conversationId || null,
+      channel: 'telegram',
+      customer_name: contactName || '',
+      customer_contact: `tg:${chat.id}`,
+
       remoteJid,
       chat_id: String(chat.id),
       message: messageForN8n,

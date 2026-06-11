@@ -740,6 +740,13 @@ async function forwardMessageToN8N(supabase: any, instance: any, payload: any, c
       agent_id: instance.agent_id,
       phone_number: instance.phone_number,
       remoteJid,
+
+      // ---------- Campos p/ agendamento (tabela appointments) ----------
+      conversation_id: conversationId,
+      channel: 'whatsapp',
+      customer_name: (payload.data?.pushName || payload.data?.verifiedBizName || '') as string,
+      customer_contact: (remoteJid ? remoteJid.split('@')[0] : (instance.phone_number || '')) as string,
+
       message: finalMessageText,
       mensagem: finalMessageText,
       mensage: finalMessageText,
